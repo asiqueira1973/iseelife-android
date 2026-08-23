@@ -91,10 +91,12 @@ orientação e filtro certos, salva no MediaStore). O app já TIRA E SALVA FOTO.
 câmera (exposição/foco manuais) valida no device. **8.7 (paywall + gate no 1º disparo) feito** —
 fluxo do gate verificado no emulador (paywall segura a foto; compra salva a pendente; desbloqueado
 salva direto). Compra REAL precisa do produto ativo no Play Console + testador de licença (device).
-**8.8 (onboarding/permissões/roteamento) e 8.9 (configurações + seletor de receitas) feitos** —
-verificados no emulador (onboarding→visor→config→seletor). Próximo: **8.10 integrações (botões de
-volume, App Shortcut, Quick Settings Tile)**, depois **8.11 i18n** (troca de idioma em runtime — as
-strings já estão externalizadas pt/en). Falta ainda: Play Console + ficha da loja + ícone final.
+**MVP COMPLETO: épicos 8.0→8.11 implementados e verificados no emulador.** 8.10 (volume dispara,
+App Shortcut, Quick Settings Tile) e 8.11 (troca de idioma pt/en em runtime) feitos. **Falta:**
+(a) `DOCUMENTACAO-TECNICA.md` (entregável de fim, seção 19 do spec — os 6 itens); (b) ícone final
+(hoje é placeholder olho âmbar — assunção 24.6); (c) Play Console (app + produto in-app ativo +
+testador de licença); (d) ficha da loja (textos/screenshots/privacidade). Comportamento de câmera
+(exposição/foco manuais, prioridade de obturador) só valida em aparelho real.
 
 **Play Console (decidido com o Alexandre):** ele publica direto em PRODUÇÃO (tem 13 apps, conta
 estabelecida → isento do teste fechado de 20 pessoas). Mas o produto in-app `iseelife_desbloqueio_completo`
