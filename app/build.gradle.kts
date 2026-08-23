@@ -2,11 +2,25 @@
 // App phone-only, retrato apenas, offline (spec seções 3/4/17). minSdk 26 (cobre TileService,
 // App Shortcuts e OpenGL ES 2.0). Compose + CameraX + Room + Play Billing.
 
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.ksp)
+}
+
+// Assinatura de release (épico de publicação). Lê o keystore.properties da raiz (NÃO versionado);
+// se não existir, o build de release sai sem assinatura (útil em dev). Formato do arquivo:
+//   storeFile=/caminho/iseelife-upload.jks
+//   storePassword=...
+//   keyAlias=iseelife
+//   keyPassword=...
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) FileInputStream(keystorePropsFile).use { load(it) }
 }
 
 android {
@@ -24,9 +38,20 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        if (keystorePropsFile.exists()) {
+            create("release") {
+                storeFile = file(keystoreProps["storeFile"] as String)
+                storePassword = keystoreProps["storePassword"] as String
+                keyAlias = keystoreProps["keyAlias"] as String
+                keyPassword = keystoreProps["keyPassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"       // permite iOS-style: debug e release lado a lado
+            applicationIdSuffix = ".debug"       // permite debug e release lado a lado
             isMinifyEnabled = false
         }
         release {
@@ -35,7 +60,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // signingConfig definido no Android Studio (keystore fora do repositório).
+            // Usa a chave de upload se o keystore.properties existir (senão sai sem assinatura).
+            if (keystorePropsFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
