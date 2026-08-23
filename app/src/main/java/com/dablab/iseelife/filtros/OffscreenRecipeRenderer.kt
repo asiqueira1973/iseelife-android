@@ -24,7 +24,7 @@ class OffscreenRecipeRenderer {
     private val display: EGLDisplay
     private val context: EGLContext
     private val surface: EGLSurface
-    private val programa: RecipeProgram
+    private val pipeline: RecipeGlPipeline
 
     init {
         display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
@@ -63,8 +63,8 @@ class OffscreenRecipeRenderer {
 
         require(EGL14.eglMakeCurrent(display, surface, surface, context)) { "EGL: makeCurrent falhou" }
 
-        // O programa 2D só pode ser criado com o contexto corrente.
-        programa = RecipeProgram(external = false)
+        // O pipeline (dois passes, entrada 2D) só pode ser criado com o contexto corrente.
+        pipeline = RecipeGlPipeline(externalInput = false)
     }
 
     // Aplica a receita ao `entrada` e devolve um novo Bitmap filtrado (mesmas dimensões).
@@ -109,11 +109,14 @@ class OffscreenRecipeRenderer {
             "FBO incompleto"
         }
 
-        // Render.
-        GLES20.glViewport(0, 0, w, h)
-        GLES20.glClearColor(0f, 0f, 0f, 1f)
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-        programa.desenhar(texIn[0], uniforms, RecipeProgram.IDENTIDADE, w, h, seed)
+        // Render em dois passes (cor → FBO intermediário → espacial/grão → este FBO de saída).
+        pipeline.render(
+            inputTex = texIn[0],
+            texMatrix = RecipeGlPipeline.IDENTIDADE,
+            larguraPx = w, alturaPx = h,
+            u = uniforms, seed = seed,
+            outFbo = fbo[0], outW = w, outH = h,
+        )
 
         // Lê os pixels de volta para um Bitmap.
         val buf = ByteBuffer.allocateDirect(w * h * 4).order(ByteOrder.nativeOrder())
@@ -130,9 +133,9 @@ class OffscreenRecipeRenderer {
         return saida
     }
 
-    // Destrói o programa e o contexto EGL. Chamar quando não for mais capturar.
+    // Destrói o pipeline e o contexto EGL. Chamar quando não for mais capturar.
     fun liberar() {
-        programa.liberar()
+        pipeline.liberar()
         EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
         EGL14.eglDestroySurface(display, surface)
         EGL14.eglDestroyContext(display, context)
