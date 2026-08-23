@@ -42,7 +42,8 @@ mas **não roda câmera** aqui.
   `LumaAnalyzer`, `ExposureController` (obturador fixo + auto-ISO), `ManualControls` (ISO/obturador/
   EV/foco/WB, Camera2Interop), `PhotoSaver` (JPEG→MediaStore). **Preview (8.3) + Rua (8.4) + Pro
   (8.5) + captura (8.6) feitos.** Falta: botão de volume (8.10).
-- `telas/viewfinder/` — `ViewfinderScreen` (visor + disparo), `ProControlsPanel` (sliders do Pro).
+- `telas/viewfinder/` — `ViewfinderScreen` (visor + disparo + gate), `ProControlsPanel`.
+- `telas/paywall/PaywallScreen` — paywall (8.7). `compras/BillingManager` — Play Billing.
 - `telas/viewfinder/` — `ViewfinderScreen` (visor Compose: permissão, troca de receita, lente).
 - `designsystem/Estilo` — cores (accent âmbar).
 - `compras/` — Play Billing. **(épico 8.7)**
@@ -84,9 +85,17 @@ preview ao vivo filtrado, troca de receita em tempo real, sem crash. 10 testes u
 instrumentados verdes. Cores validadas pelo Alexandre (contact sheet). **8.4 (Modo Rua) e 8.5 (Modo
 Pro) e 8.6 (captura + salvar na galeria) feitos** — captura verificada no emulador (foto retrato,
 orientação e filtro certos, salva no MediaStore). O app já TIRA E SALVA FOTO. Comportamento de
-câmera (exposição/foco manuais) valida no device. Próximo: **8.7 (Play Billing — paywall no 1º
-disparo)**, depois 8.8 onboarding/permissões, 8.9 configurações + seletor de receitas, 8.10
+câmera (exposição/foco manuais) valida no device. **8.7 (paywall + gate no 1º disparo) feito** —
+fluxo do gate verificado no emulador (paywall segura a foto; compra salva a pendente; desbloqueado
+salva direto). Compra REAL precisa do produto ativo no Play Console + testador de licença (device).
+Próximo: **8.8 onboarding/permissões, 8.9 configurações + seletor de receitas**, depois 8.10
 integrações (volume/App Shortcut/Quick Tile), 8.11 i18n.
+
+**Play Console (decidido com o Alexandre):** ele publica direto em PRODUÇÃO (tem 13 apps, conta
+estabelecida → isento do teste fechado de 20 pessoas). Mas o produto in-app `iseelife_desbloqueio_completo`
+PRECISA existir e estar ativo, e ele como testador de licença pra testar a compra de graça. Setup do
+Play Console fica pro "meio" (quando o app estiver navegável, ~depois do 8.9). Ficha da loja (textos/
+imagens) no fim.
 
 **Rodar no emulador (sem Android Studio):**
 ```bash
