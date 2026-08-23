@@ -107,7 +107,15 @@ fun ViewfinderScreen() {
     val activeRecipe = remember(recipes, config) {
         recipes.firstOrNull { it.id == config?.activeRecipeId } ?: recipes.firstOrNull()
     }
-    val modo = config?.defaultMode ?: ModoCaptura.RUA
+    // Modo atual (Rua/Pro): inicia do padrão salvo, depois é alternado pelo usuário na sessão.
+    var modo by remember { mutableStateOf(ModoCaptura.RUA) }
+    var modoInicializado by remember { mutableStateOf(false) }
+    LaunchedEffect(config) {
+        if (!modoInicializado && config != null) {
+            modo = config!!.defaultMode
+            modoInicializado = true
+        }
+    }
     val forceMono = (config?.previewBwEnabled == true) && modo == ModoCaptura.RUA
 
     // Empurra os uniforms da receita ativa (com preview P&B) para o renderer.
@@ -149,12 +157,15 @@ fun ViewfinderScreen() {
         if (temPermissao) {
             AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 
-            // Camada transparente de toque: toque trava o foco no ponto (Modo Rua — épico 8.4).
+            // Camada transparente de toque: no Modo Rua, toque trava o foco no ponto (épico 8.4).
+            // No Pro o foco é manual (slider), então o toque não interfere.
             Box(
-                modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+                modifier = Modifier.fillMaxSize().pointerInput(modo) {
                     detectTapGestures { off ->
-                        controller.focarNoPonto(off.x, off.y, size.width, size.height)
-                        focoPonto = off
+                        if (modo == ModoCaptura.RUA) {
+                            controller.focarNoPonto(off.x, off.y, size.width, size.height)
+                            focoPonto = off
+                        }
                     }
                 }
             )
@@ -176,12 +187,35 @@ fun ViewfinderScreen() {
                 }
             }
 
-            // Receita ativa (toque cicla). Rodapé.
-            Row(
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                    .systemBarsPadding().padding(24.dp),
-                horizontalArrangement = Arrangement.Center,
+            // Alternância Rua/Pro (topo esquerdo).
+            Chip(
+                texto = if (modo == ModoCaptura.PRO) "PRO" else "RUA",
+                destaque = modo == ModoCaptura.PRO,
+                modifier = Modifier.align(Alignment.TopStart).systemBarsPadding().padding(16.dp),
             ) {
+                modo = if (modo == ModoCaptura.RUA) ModoCaptura.PRO else ModoCaptura.RUA
+            }
+
+            // Rodapé: painel do Pro (quando no Pro) + receita ativa (toque cicla).
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                    .systemBarsPadding().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (modo == ModoCaptura.PRO) {
+                    controller.faixasManuais?.let { faixas ->
+                        ProControlsPanel(
+                            faixas = faixas,
+                            aoISO = { controller.proISO(it) },
+                            aoObturador = { controller.proObturador(it) },
+                            aoEV = { controller.proEV(it) },
+                            aoFoco = { controller.proFoco(it) },
+                            aoWhiteBalance = { t, ti -> controller.proWhiteBalance(t, ti) },
+                            aoAuto = { controller.proAuto() },
+                        )
+                    }
+                }
                 Chip(texto = activeRecipe?.displayName ?: "—", destaque = true) {
                     ciclarReceita(recipes, activeRecipe?.id) { proxId ->
                         scope.launch {

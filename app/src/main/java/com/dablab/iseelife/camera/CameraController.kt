@@ -27,8 +27,13 @@ class CameraController(
     private var camera: Camera? = null
     private val analiseExecutor = Executors.newSingleThreadExecutor()
     private val exposicao = ExposureController()
+    private val manual = ManualControls()
 
     var lentes: LensDiscovery? = null
+        private set
+
+    // Faixas dos sliders do Modo Pro (disponíveis após o bind). Null antes de ligar.
+    var faixasManuais: FaixasManuais? = null
         private set
 
     fun inicializar(onReady: (LensDiscovery) -> Unit) {
@@ -69,8 +74,19 @@ class CameraController(
 
         p.unbindAll()
         camera = p.bindToLifecycle(lifecycleOwner, seletor, preview, analise)
-        camera?.let { exposicao.configurar(it) }
+        camera?.let {
+            exposicao.configurar(it)
+            faixasManuais = manual.configurar(it)
+        }
     }
+
+    // Controles manuais do Modo Pro (épico 8.5) — passthrough para ManualControls.
+    fun proISO(v: Int) = manual.definirISO(v)
+    fun proObturador(ns: Long) = manual.definirObturador(ns)
+    fun proEV(v: Float) = manual.definirEV(v)
+    fun proFoco(pos: Float) = manual.definirFoco(pos)
+    fun proWhiteBalance(temperatura: Int, tinta: Int) = manual.definirWhiteBalance(temperatura, tinta)
+    fun proAuto() = manual.restaurarAutomatico()
 
     // Toque para travar foco no ponto (Modo Rua — épico 8.4). `x,y` em px na view (0..w, 0..h).
     // Sob prioridade de obturador, NÃO mede exposição (o loop de ISO governa) — só foco.
