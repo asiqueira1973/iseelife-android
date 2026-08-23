@@ -37,11 +37,12 @@ mas **não roda câmera** aqui.
   `RecipeProgram` (compila/liga, envia uniforms, desenha), `GlUtil`, `OffscreenRecipeRenderer`
   (aplica a receita a um Bitmap via EGL PBuffer+FBO = caminho da captura). **Feito (épico 8.2).**
   Falta: zebra/peaking (roadmap, atrás de flag). WB é aproximação por ganho de canal — calibrar no device.
-- `camera/` — `LensDiscovery` (lentes), `CameraGlRenderer` (OES→pipeline), `GlPreviewView`
-  (GLSurfaceView), `CameraController` (CameraX↔SurfaceTexture + foco por toque + prioridade de
-  obturador), `LumaAnalyzer` (luminância→ISO), `ExposureController` (obturador fixo + auto-ISO,
-  Camera2Interop). **Preview (8.3) + Modo Rua/foco/prioridade de obturador (8.4) feitos.**
-  Falta: controles manuais/Pro (8.5), captura (8.6), botão de volume (8.10).
+- `camera/` — `LensDiscovery`, `CameraGlRenderer` (OES→pipeline), `GlPreviewView`, `CameraController`
+  (CameraX↔SurfaceTexture + foco por toque + prioridade de obturador + controles manuais),
+  `LumaAnalyzer`, `ExposureController` (obturador fixo + auto-ISO), `ManualControls` (ISO/obturador/
+  EV/foco/WB, Camera2Interop). **Preview (8.3) + Rua (8.4) + Pro (8.5) feitos.** Falta: captura
+  (8.6), botão de volume (8.10).
+- `telas/viewfinder/` — `ViewfinderScreen`, `ProControlsPanel` (sliders do Pro).
 - `telas/viewfinder/` — `ViewfinderScreen` (visor Compose: permissão, troca de receita, lente).
 - `designsystem/Estilo` — cores (accent âmbar).
 - `compras/` — Play Billing. **(épico 8.7)**
@@ -80,10 +81,10 @@ mas **não roda câmera** aqui.
 Feitos: **8.0** (esqueleto), **8.1** (Room + seed/sync), **8.2** (pipeline GLSL 2 passes) e **8.3**
 (câmera CameraX + preview filtrado ao vivo — WYSIWYG). Verificado no emulador (câmera virtualscene):
 preview ao vivo filtrado, troca de receita em tempo real, sem crash. 10 testes unitários + 3
-instrumentados verdes. Cores validadas pelo Alexandre (contact sheet). **8.4 (Modo Rua: toque p/
-foco + prioridade de obturador) feito** — compila; comportamento de câmera valida no device.
-Próximo: **8.5 (Modo Pro — sliders manuais + botão Auto)**, depois 8.6 captura, 8.7 Play Billing,
-8.8/8.9 telas, 8.10 integrações, 8.11 i18n.
+instrumentados verdes. Cores validadas pelo Alexandre (contact sheet). **8.4 (Modo Rua) e 8.5 (Modo
+Pro — sliders + Auto + toggle Rua/Pro) feitos** — painel Pro verificado no emulador; comportamento
+de câmera (exposição/foco manuais) valida no device. Próximo: **8.6 (captura silenciosa +
+MediaStore)**, depois 8.7 Play Billing, 8.8/8.9 telas, 8.10 integrações, 8.11 i18n.
 
 **Rodar no emulador (sem Android Studio):**
 ```bash
