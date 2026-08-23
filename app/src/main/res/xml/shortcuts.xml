@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App Shortcut estático "Disparar" (épico 8.10). Segurar o ícone → abre o app no Modo Rua.
+     O extra "abrir_rua" é lido pela MainActivity para cair direto no visor (épico 8.4). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="disparar"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_disparar"
+        android:shortcutShortLabel="@string/shortcut_disparar_curto"
+        android:shortcutLongLabel="@string/shortcut_disparar_longo">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.dablab.iseelife"
+            android:targetClass="com.dablab.iseelife.MainActivity">
+            <extra android:name="abrir_rua" android:value="true" />
+        </intent>
+    </shortcut>
+</shortcuts>

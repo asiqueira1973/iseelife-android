@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cores base (spec seção 16, paridade com o DesignSystem do iOS). Fundo preto; accent âmbar
+     #FFB000 só para significado (foco travado, receita ativa, toggle ligado). -->
+<resources>
+    <color name="preto">#FF000000</color>
+    <color name="accent_ambar">#FFFFB000</color>
+    <color name="painel">#FF1A1A1A</color>
+    <color name="texto_secundario">#FF9E9E9E</color>
+</resources>

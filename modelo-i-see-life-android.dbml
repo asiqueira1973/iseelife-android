@@ -1,0 +1,95 @@
+// Modelo de dados — I See Life Android (Room / SQLite local)
+// Gerado a partir da seção 7 do spec.md. Duas entidades independentes, SEM relação (sem FK):
+// a ligação "receita ativa" é por valor (configuracao_usuario.receita_ativa_id guarda o id da
+// receita), não por chave estrangeira — igual ao app iOS. Nomes em português snake_case.
+// Paridade de valores/enums com o iOS.
+
+// configuracao_usuario: linha única (singleton, id sempre = 1). Preferências locais do usuário.
+// check id = 1 (constraint garantida no código/DAO; DBML não expressa check).
+Table configuracao_usuario {
+  id integer [pk, default: 1, note: 'sempre 1 (singleton, check id = 1)']
+  idioma_preferido idioma [not null, default: 'pt', note: 'idioma da interface; troca em runtime']
+  modo_padrao modo_captura [not null, default: 'rua', note: 'modo ao abrir o visor (princípio 0.1)']
+  ultima_lente_usada lente_camera [note: 'nulo até a 1ª captura; nulo = escolher a wide']
+  grid_ativado integer [not null, default: 1, note: 'bool: grid de terços']
+  nivel_ativado integer [not null, default: 1, note: 'bool: indicador de nível']
+  obturador_silencioso integer [not null, default: 1, note: 'bool: captura sem som']
+  preview_pb_ativado integer [not null, default: 0, note: 'bool: preview P&B no Rua (só preview)']
+  compra_desbloqueada integer [not null, default: 0, note: 'bool: true após compra confirmada (11.4)']
+  data_compra integer [note: 'epoch ms; preenchida na confirmação; nulo antes']
+  onboarding_concluido integer [not null, default: 0, note: 'bool: controla reaparição do onboarding']
+  receita_ativa_id uuid [note: 'última receita escolhida (por valor); nulo = usa ordem_exibicao = 1']
+  rua_obturador_denominador integer [not null, default: 250, note: 'piso do obturador no Rua: 250/500/1000']
+
+  Note: 'Singleton de preferências locais. Nunca excluída no MVP; atualizada in-place.'
+}
+
+// receita: catálogo fixo, somente-leitura no MVP. Cada campo alimenta o shader GLSL (11.6).
+// hl/sh/sat guardados em MEIO-PASSO ×2 (valor dobrado); a camada de uniforms divide por 2.
+Table receita {
+  id uuid [pk, note: 'identificador estável (UUID); referenciado por valor em receita_ativa_id']
+  nome_exibicao text [not null, unique, note: 'rótulo e identidade estável ("Classic"...)']
+  inspiracao text [not null, note: 'referência interna (não exibida como marca de terceiro)']
+  highlight integer [not null, default: 0, note: 'meio-passo ×2 — curva de tom nas altas luzes']
+  shadow integer [not null, default: 0, note: 'meio-passo ×2 — curva de tom nas sombras']
+  saturacao integer [not null, default: 0, note: 'meio-passo ×2 — saturação (ignorada em mono)']
+  temperatura_wb_kelvin integer [note: 'Kelvin assumido da cena; nulo = segue o sensor']
+  tinta_wb integer [not null, default: 0, note: 'eixo verde/magenta (-9..+9); NÃO vermelho/azul']
+  intensidade_grao intensidade_grao [not null, default: 'nenhum', note: 'força do grão']
+  nitidez integer [not null, default: 0, note: '-4..+4: + sharpen / - desfoque leve']
+  monocromatico integer [not null, default: 0, note: 'bool: remove toda a cor (preview e arquivo)']
+  filtro_mono filtro_mono [note: 'filtro colorido simulado; só com monocromatico = 1; nulo caso contrário']
+  ordem_exibicao integer [not null, note: 'ordem fixa no seletor; ordem 1 = padrão neutro']
+  ajuste_vermelho integer [not null, default: 0, note: 'v1.1 — WB shift eixo vermelho (ganho canal R)']
+  ajuste_azul integer [not null, default: 0, note: 'v1.1 — WB shift eixo azul (ganho canal B)']
+  efeito_color_chrome efeito_color_chrome [not null, default: 'desligado', note: 'v1.1 — compressão de saturação (eixo quente)']
+  efeito_color_chrome_azul efeito_color_chrome [not null, default: 'desligado', note: 'v1.1 — idem, eixo azul']
+  clareza integer [not null, default: 0, note: 'v1.1 — contraste local -4..+4 (≠ nitidez)']
+  tamanho_grao tamanho_grao [not null, default: 'pequeno', note: 'v1.1 — tamanho do grão']
+  criada_pelo_usuario integer [not null, default: 0, note: 'bool: false no catálogo fixo; prepara custom (roadmap)']
+
+  Note: 'Catálogo fixo (6 receitas). Sincronizado por nome_exibicao a cada abertura (regra 11.5): upsert de todos os campos + hard delete das fixas fora do catálogo, respeitando criada_pelo_usuario = 1. Índice em ordem_exibicao.'
+}
+
+// Sem Ref/FK: a associação é por valor (receita_ativa_id -> receita.id), não relacional.
+// Sem triggers, funções ou políticas: toda a lógica vive no código Kotlin (não no banco).
+
+enum idioma {
+  pt
+  en
+}
+
+enum modo_captura {
+  rua
+  pro
+}
+
+enum lente_camera {
+  wide
+  ultra_wide
+}
+
+enum intensidade_grao {
+  nenhum
+  fraco
+  medio
+  forte
+}
+
+enum filtro_mono {
+  nenhum
+  amarelo
+  vermelho
+  verde
+}
+
+enum efeito_color_chrome {
+  desligado
+  fraco
+  forte
+}
+
+enum tamanho_grao {
+  pequeno
+  grande
+}

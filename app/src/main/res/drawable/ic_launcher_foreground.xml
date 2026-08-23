@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Primeiro plano do ícone adaptativo: olho âmbar (placeholder; refino na assunção 24.6).
+     Dentro da zona segura (~66dp de 108dp). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Contorno do olho (amêndoa) -->
+    <path
+        android:strokeColor="#FFB000"
+        android:strokeWidth="5"
+        android:fillColor="#00000000"
+        android:pathData="M30,54 C42,40 66,40 78,54 C66,68 42,68 30,54 Z" />
+    <!-- Íris -->
+    <path
+        android:fillColor="#FFB000"
+        android:pathData="M54,54 m-11,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0" />
+    <!-- Pupila (recorte escuro) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M54,54 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+</vector>

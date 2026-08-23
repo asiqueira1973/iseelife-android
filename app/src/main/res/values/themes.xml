@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tema do app (spec seção 16). App é sempre ESCURO (câmera): fundo preto, barras pretas.
+     Parent do framework (android:Theme.Material.NoActionBar) para não depender da lib de
+     componentes de View — a UI real é Compose/Material3. -->
+<resources>
+    <style name="Theme.ISeeLife" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/preto</item>
+        <item name="android:statusBarColor">@color/preto</item>
+        <item name="android:navigationBarColor">@color/preto</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings pt-BR (default) — épico 8.11. Toda string de UI vive aqui; nada hardcoded. -->
+<resources>
+    <string name="app_name">I See Life</string>
+
+    <!-- Atalhos de plataforma (épico 8.10) -->
+    <string name="shortcut_disparar_curto">Disparar</string>
+    <string name="shortcut_disparar_longo">Abrir no Modo Rua</string>
+    <string name="tile_disparar">I See Life</string>
+
+    <!-- Placeholder de fundação (8.0) — substituído pelas telas reais nos épicos seguintes. -->
+    <string name="carregando">Carregando…</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings en — épico 8.11. Espelha values/strings.xml. -->
+<resources>
+    <string name="app_name">I See Life</string>
+
+    <string name="shortcut_disparar_curto">Shoot</string>
+    <string name="shortcut_disparar_longo">Open in Street Mode</string>
+    <string name="tile_disparar">I See Life</string>
+
+    <string name="carregando">Loading…</string>
+</resources>
