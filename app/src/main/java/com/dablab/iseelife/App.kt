@@ -13,4 +13,8 @@ class App : Application() {
     val database: AppDatabase by lazy { AppDatabase.obter(this) }
     val repositorio: Repositorio by lazy { Repositorio(database) }
     val billing: BillingManager by lazy { BillingManager(this) }
+
+    // Disparo compartilhado (épico 8.10): o visor registra sua função de disparar aqui, e a
+    // MainActivity chama ao receber os botões de volume. Null quando o visor não está ativo.
+    @Volatile var disparador: (() -> Unit)? = null
 }

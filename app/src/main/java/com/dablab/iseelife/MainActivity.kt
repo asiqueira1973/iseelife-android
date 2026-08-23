@@ -5,6 +5,7 @@
 package com.dablab.iseelife
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
@@ -23,5 +24,22 @@ class MainActivity : ComponentActivity() {
                 RootView()
             }
         }
+    }
+
+    // Botões de volume disparam a foto quando o visor está ativo (épico 8.10, paridade iOS). O visor
+    // registra sua ação em App.disparador; se não houver (onboarding/config), o volume age normal.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val ehVolume = event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+            event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+        if (ehVolume && event.action == KeyEvent.ACTION_DOWN) {
+            val disparar = (application as App).disparador
+            if (disparar != null) {
+                disparar()
+                return true   // consome (não altera o volume enquanto fotografa)
+            }
+        }
+        // Consome também o ACTION_UP do volume enquanto o visor está ativo (evita o "bip"/HUD).
+        if (ehVolume && (application as App).disparador != null) return true
+        return super.dispatchKeyEvent(event)
     }
 }

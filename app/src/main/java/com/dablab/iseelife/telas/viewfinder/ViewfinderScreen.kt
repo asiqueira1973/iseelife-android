@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -193,6 +194,24 @@ fun ViewfinderScreen() {
         }
     }
 
+    // Ação de disparo compartilhada — usada pelo botão da tela E pelos botões de volume (8.10).
+    // Ignora enquanto um overlay (paywall/config/seletor) está aberto.
+    val disparar: () -> Unit = disparar@{
+        if (mostrarPaywall || mostrarConfig || mostrarSeletor) return@disparar
+        vibrar(context)
+        flash = true
+        previewView.capturar { bmp ->
+            if (desbloqueado) scope.launch { PhotoSaver.salvar(context, bmp) }
+            else { fotoPendente = bmp; mostrarPaywall = true }
+        }
+    }
+    // Registra a versão sempre atual do disparo no App, para os botões de volume (MainActivity).
+    val dispararAtual = rememberUpdatedState(disparar)
+    DisposableEffect(Unit) {
+        app.disparador = { dispararAtual.value() }
+        onDispose { app.disparador = null }
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(Estilo.FundoVisor)) {
         if (temPermissao) {
             AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
@@ -271,21 +290,8 @@ fun ViewfinderScreen() {
                         .size(76.dp)
                         .background(Estilo.TextoPrimario, CircleShape)
                         .border(4.dp, Estilo.Painel, CircleShape)
-                        .pointerInput(desbloqueado) {
-                            detectTapGestures(onPress = {
-                                vibrar(context)
-                                flash = true
-                                previewView.capturar { bmp ->
-                                    // Gate (regra 11.4): desbloqueado salva; senão segura a foto
-                                    // pendente e abre o paywall (não salva ainda).
-                                    if (desbloqueado) {
-                                        scope.launch { PhotoSaver.salvar(context, bmp) }
-                                    } else {
-                                        fotoPendente = bmp
-                                        mostrarPaywall = true
-                                    }
-                                }
-                            })
+                        .pointerInput(Unit) {
+                            detectTapGestures(onPress = { disparar() })
                         }
                 )
             }

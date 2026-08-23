@@ -42,19 +42,16 @@
                 android:resource="@xml/shortcuts" />
         </activity>
 
-        <!-- Quick Settings Tile (épico 8.10) — equivalente ao Control do iOS 18. Registrado
-             aqui; a classe é implementada no épico 8.10. Comentado até existir a classe. -->
-        <!--
+        <!-- Quick Settings Tile (épico 8.10) — equivalente confiável ao Control do iOS 18. -->
         <service
             android:name=".plataforma.DispararTileService"
             android:exported="true"
-            android:icon="@drawable/ic_tile_disparar"
+            android:icon="@drawable/ic_shortcut_disparar"
             android:label="@string/tile_disparar"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
-        -->
     </application>
 </manifest>
