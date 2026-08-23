@@ -23,13 +23,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.app.Activity
 import com.dablab.iseelife.R
 import com.dablab.iseelife.dados.ConfiguracaoUsuario
+import com.dablab.iseelife.dados.Idioma
 import com.dablab.iseelife.designsystem.Estilo
+import com.dablab.iseelife.plataforma.Idiomas
 
 @Composable
 fun SettingsScreen(
@@ -39,6 +43,7 @@ fun SettingsScreen(
     aoRestaurar: () -> Unit,
     aoFechar: () -> Unit,
 ) {
+    val context = LocalContext.current
     Box(
         modifier = Modifier.fillMaxSize().background(Estilo.FundoVisor.copy(alpha = 0.96f)),
     ) {
@@ -65,6 +70,32 @@ fun SettingsScreen(
             }
             LinhaToggle(stringResource(R.string.config_preview_pb), config.previewBwEnabled) {
                 aoSalvar(config.copy(previewBwEnabled = it))
+            }
+
+            // Idioma (épico 8.11) — troca em runtime (recreate da Activity).
+            Text(
+                text = stringResource(R.string.config_idioma),
+                color = Estilo.TextoSecundario,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 16.dp, bottom = 6.dp),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for ((lang, rotulo) in listOf("pt" to "Português", "en" to "English")) {
+                    val ativo = config.language == Idioma.de(lang)
+                    Text(
+                        text = rotulo,
+                        color = if (ativo) Estilo.FundoVisor else Estilo.TextoPrimario,
+                        fontWeight = if (ativo) FontWeight.SemiBold else FontWeight.Normal,
+                        modifier = Modifier
+                            .background(if (ativo) Estilo.Accent else Estilo.Painel, RoundedCornerShape(10.dp))
+                            .clickable {
+                                Idiomas.definirIdioma(context, lang)
+                                aoSalvar(config.copy(language = Idioma.de(lang)))
+                                (context as? Activity)?.recreate()
+                            }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                }
             }
 
             // Piso do obturador do Modo Rua (250/500/1000).

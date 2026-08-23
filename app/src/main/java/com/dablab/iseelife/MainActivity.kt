@@ -4,6 +4,7 @@
 
 package com.dablab.iseelife
 
+import android.content.Context
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -14,6 +15,12 @@ import androidx.compose.runtime.LaunchedEffect
 import com.dablab.iseelife.telas.RootView
 
 class MainActivity : ComponentActivity() {
+
+    // Aplica o idioma escolhido (épico 8.11) antes de inflar a UI.
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(com.dablab.iseelife.plataforma.Idiomas.aplicar(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val repositorio = (application as App).repositorio
