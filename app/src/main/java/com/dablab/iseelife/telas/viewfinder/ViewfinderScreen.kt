@@ -1,0 +1,205 @@
+// ViewfinderScreen.kt — visor com preview filtrado ao vivo (épico 8.3). Hospeda a GlPreviewView
+// (câmera → shader), pede a permissão de câmera, mostra a receita ativa (toque cicla as receitas)
+// e o botão de lente (só quando há mais de uma — regra 11.1). O disparo, o Modo Pro e o toque
+// para travar foco chegam nos épicos 8.4/8.5/8.6; aqui o foco é o preview WYSIWYG.
+
+package com.dablab.iseelife.telas.viewfinder
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.SurfaceTexture
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import com.dablab.iseelife.App
+import com.dablab.iseelife.camera.CameraController
+import com.dablab.iseelife.camera.GlPreviewView
+import com.dablab.iseelife.camera.LensDiscovery
+import com.dablab.iseelife.dados.LenteCamera
+import com.dablab.iseelife.dados.ModoCaptura
+import com.dablab.iseelife.designsystem.Estilo
+import com.dablab.iseelife.filtros.RecipeUniforms
+import kotlinx.coroutines.launch
+
+@Composable
+fun ViewfinderScreen() {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val app = context.applicationContext as App
+    val repo = app.repositorio
+    val scope = rememberCoroutineScope()
+
+    // Estado de coordenação (câmera pronta + surface pronta + permissão).
+    val previewView = remember { GlPreviewView(context) }
+    val controller = remember { CameraController(context, lifecycleOwner) }
+    val stState = remember { mutableStateOf<SurfaceTexture?>(null) }
+    val providerReady = remember { mutableStateOf(false) }
+    val lensesState = remember { mutableStateOf<LensDiscovery?>(null) }
+    val lensState = remember { mutableStateOf(LenteCamera.WIDE) }
+    var temPermissao by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    // Liga o Preview quando permissão + provider + surface estiverem prontos.
+    val tentarLigar = remember {
+        {
+            val st = stState.value
+            val lds = lensesState.value
+            if (temPermissao && providerReady.value && st != null && lds != null) {
+                controller.ligar(st, lds.seletor(lensState.value)) { w, h ->
+                    previewView.definirTamanhoFrame(w, h)
+                }
+            }
+        }
+    }
+
+    val pedirPermissao = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { concedida ->
+        temPermissao = concedida
+        if (concedida) tentarLigar()
+    }
+
+    // Dados: receitas + configuração (fluxos do Room).
+    val recipes by repo.observarReceitas().collectAsState(initial = emptyList())
+    val config by repo.observarConfiguracao().collectAsState(initial = null)
+    val activeRecipe = remember(recipes, config) {
+        recipes.firstOrNull { it.id == config?.activeRecipeId } ?: recipes.firstOrNull()
+    }
+    val modo = config?.defaultMode ?: ModoCaptura.RUA
+    val forceMono = (config?.previewBwEnabled == true) && modo == ModoCaptura.RUA
+
+    // Empurra os uniforms da receita ativa (com preview P&B) para o renderer.
+    LaunchedEffect(activeRecipe, forceMono) {
+        val r = activeRecipe ?: return@LaunchedEffect
+        previewView.definirUniforms(RecipeUniforms.de(r, forceMono))
+    }
+
+    // Setup/teardown da câmera e da surface.
+    DisposableEffect(Unit) {
+        previewView.aoSurfaceTexturePronta = { st ->
+            stState.value = st
+            tentarLigar()
+        }
+        controller.inicializar { ld ->
+            lensesState.value = ld
+            lensState.value = ld.lentes.first().tipo
+            providerReady.value = true
+            tentarLigar()
+        }
+        if (!temPermissao) pedirPermissao.launch(Manifest.permission.CAMERA)
+        onDispose {
+            controller.desligar()
+            previewView.liberarGl()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Estilo.FundoVisor)) {
+        if (temPermissao) {
+            AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+
+            // Botão de lente (só com mais de uma — regra 11.1), topo direito.
+            lensesState.value?.let { lds ->
+                if (lds.temMultiplas()) {
+                    Chip(
+                        texto = if (lensState.value == LenteCamera.ULTRA_WIDE) "0.5×" else "1×",
+                        modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(16.dp),
+                    ) {
+                        lensState.value =
+                            if (lensState.value == LenteCamera.WIDE) LenteCamera.ULTRA_WIDE else LenteCamera.WIDE
+                        tentarLigar()
+                    }
+                }
+            }
+
+            // Receita ativa (toque cicla). Rodapé.
+            Row(
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                    .systemBarsPadding().padding(24.dp),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Chip(texto = activeRecipe?.displayName ?: "—", destaque = true) {
+                    ciclarReceita(recipes, activeRecipe?.id) { proxId ->
+                        scope.launch {
+                            val c = repo.obterConfiguracao() ?: return@launch
+                            repo.atualizarConfiguracao(c.copy(activeRecipeId = proxId))
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    "Precisamos da câmera para o visor.",
+                    color = Estilo.TextoPrimario,
+                )
+                Chip(texto = "Permitir câmera", destaque = true) {
+                    pedirPermissao.launch(Manifest.permission.CAMERA)
+                }
+            }
+        }
+    }
+}
+
+// Avança para a próxima receita na ordem e devolve o id via callback.
+private fun ciclarReceita(
+    recipes: List<com.dablab.iseelife.dados.Receita>,
+    atualId: String?,
+    aoTrocar: (String) -> Unit,
+) {
+    if (recipes.isEmpty()) return
+    val idx = recipes.indexOfFirst { it.id == atualId }.coerceAtLeast(0)
+    aoTrocar(recipes[(idx + 1) % recipes.size].id)
+}
+
+@Composable
+private fun Chip(
+    texto: String,
+    modifier: Modifier = Modifier,
+    destaque: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = texto,
+        color = if (destaque) Estilo.Accent else Estilo.TextoPrimario,
+        fontWeight = if (destaque) FontWeight.SemiBold else FontWeight.Normal,
+        fontSize = 16.sp,
+        modifier = modifier
+            .background(Estilo.Painel, RoundedCornerShape(20.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+    )
+}

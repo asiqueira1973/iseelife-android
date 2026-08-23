@@ -56,6 +56,9 @@ class RecipeGlPipeline(externalInput: Boolean) {
     // tela). `larguraPx/alturaPx` = resolução da imagem/frame (define o FBO intermediário e a
     // amostragem de vizinhança). `outW/outH` = viewport do alvo. `texMatrix` transforma as coords
     // da entrada (matriz da SurfaceTexture no preview; identidade no bitmap).
+    // `texMatrix`: transforma as coords da ENTRADA no passe A (matriz da SurfaceTexture no preview;
+    // identidade no bitmap). `outTexMatrix`: transforma as coords no passe B → usado para o
+    // aspect-fill do preview (crop) sem distorcer; identidade na captura offscreen.
     fun render(
         inputTex: Int,
         texMatrix: FloatArray,
@@ -66,6 +69,7 @@ class RecipeGlPipeline(externalInput: Boolean) {
         outFbo: Int,
         outW: Int,
         outH: Int,
+        outTexMatrix: FloatArray = IDENTIDADE,
     ) {
         garantirIntermediario(larguraPx, alturaPx)
 
@@ -98,7 +102,7 @@ class RecipeGlPipeline(externalInput: Boolean) {
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, interTex)
         GLES20.glUniform1i(uSource, 0)
-        GLES20.glUniformMatrix4fv(uTexMatrixS, 1, false, IDENTIDADE, 0)
+        GLES20.glUniformMatrix4fv(uTexMatrixS, 1, false, outTexMatrix, 0)
         GLES20.glUniform2f(uTexSize, larguraPx.toFloat(), alturaPx.toFloat())
         GLES20.glUniform1f(uClarity, u.clarity)
         GLES20.glUniform1f(uSharpness, u.sharpness)
