@@ -40,9 +40,9 @@ mas **não roda câmera** aqui.
 - `camera/` — `LensDiscovery`, `CameraGlRenderer` (OES→pipeline), `GlPreviewView`, `CameraController`
   (CameraX↔SurfaceTexture + foco por toque + prioridade de obturador + controles manuais),
   `LumaAnalyzer`, `ExposureController` (obturador fixo + auto-ISO), `ManualControls` (ISO/obturador/
-  EV/foco/WB, Camera2Interop). **Preview (8.3) + Rua (8.4) + Pro (8.5) feitos.** Falta: captura
-  (8.6), botão de volume (8.10).
-- `telas/viewfinder/` — `ViewfinderScreen`, `ProControlsPanel` (sliders do Pro).
+  EV/foco/WB, Camera2Interop), `PhotoSaver` (JPEG→MediaStore). **Preview (8.3) + Rua (8.4) + Pro
+  (8.5) + captura (8.6) feitos.** Falta: botão de volume (8.10).
+- `telas/viewfinder/` — `ViewfinderScreen` (visor + disparo), `ProControlsPanel` (sliders do Pro).
 - `telas/viewfinder/` — `ViewfinderScreen` (visor Compose: permissão, troca de receita, lente).
 - `designsystem/Estilo` — cores (accent âmbar).
 - `compras/` — Play Billing. **(épico 8.7)**
@@ -82,9 +82,11 @@ Feitos: **8.0** (esqueleto), **8.1** (Room + seed/sync), **8.2** (pipeline GLSL 
 (câmera CameraX + preview filtrado ao vivo — WYSIWYG). Verificado no emulador (câmera virtualscene):
 preview ao vivo filtrado, troca de receita em tempo real, sem crash. 10 testes unitários + 3
 instrumentados verdes. Cores validadas pelo Alexandre (contact sheet). **8.4 (Modo Rua) e 8.5 (Modo
-Pro — sliders + Auto + toggle Rua/Pro) feitos** — painel Pro verificado no emulador; comportamento
-de câmera (exposição/foco manuais) valida no device. Próximo: **8.6 (captura silenciosa +
-MediaStore)**, depois 8.7 Play Billing, 8.8/8.9 telas, 8.10 integrações, 8.11 i18n.
+Pro) e 8.6 (captura + salvar na galeria) feitos** — captura verificada no emulador (foto retrato,
+orientação e filtro certos, salva no MediaStore). O app já TIRA E SALVA FOTO. Comportamento de
+câmera (exposição/foco manuais) valida no device. Próximo: **8.7 (Play Billing — paywall no 1º
+disparo)**, depois 8.8 onboarding/permissões, 8.9 configurações + seletor de receitas, 8.10
+integrações (volume/App Shortcut/Quick Tile), 8.11 i18n.
 
 **Rodar no emulador (sem Android Studio):**
 ```bash
