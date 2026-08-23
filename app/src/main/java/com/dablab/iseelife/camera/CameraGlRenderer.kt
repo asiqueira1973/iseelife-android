@@ -9,13 +9,18 @@
 
 package com.dablab.iseelife.camera
 
+import android.graphics.Bitmap
 import android.graphics.SurfaceTexture
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import android.os.Handler
+import android.os.Looper
 import com.dablab.iseelife.filtros.RecipeGlPipeline
 import com.dablab.iseelife.filtros.RecipeUniforms
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -43,7 +48,21 @@ class CameraGlRenderer(
     // Receita ativa (com forceMono já embutido). Atualizada pela UI; lida na thread GL.
     @Volatile private var uniforms: RecipeUniforms? = null
 
+    // Captura (épico 8.6): quando setado, o próximo frame é renderizado em full-res para um FBO e
+    // lido de volta como Bitmap (o MESMO shader do preview → WYSIWYG). Callback na main thread.
+    @Volatile private var aoCapturar: ((Bitmap) -> Unit)? = null
+    private var capFbo = 0
+    private var capTex = 0
+    private var capW = 0
+    private var capH = 0
+
     fun definirUniforms(u: RecipeUniforms) { uniforms = u }
+
+    // Solicita a captura do próximo frame filtrado (chama de qualquer thread).
+    fun solicitarCaptura(callback: (Bitmap) -> Unit) {
+        aoCapturar = callback
+        pedirRender()
+    }
 
     // Resolução do frame que a câmera vai entregar (vinda do SurfaceRequest do CameraX).
     fun definirTamanhoFrame(w: Int, h: Int) { frameW = w; frameH = h }
@@ -99,6 +118,51 @@ class CameraGlRenderer(
             u = u, seed = seed,
             outFbo = 0, outW = viewW, outH = viewH,
         )
+
+        // Captura solicitada: renderiza EXATAMENTE o que está no preview (mesma matriz `combinado`
+        // com orientação + aspect-fill), no tamanho da view → foto em retrato, WYSIWYG. O teto de
+        // detalhe é a resolução do frame da câmera; capturar no tamanho da view preserva o
+        // enquadramento visto. (Captura em maior resolução é otimização de roadmap.)
+        val cb = aoCapturar
+        if (cb != null) {
+            aoCapturar = null
+            garantirCaptura(viewW, viewH)
+            pipe.render(
+                inputTex = oesTex,
+                texMatrix = combinado,
+                larguraPx = viewW, alturaPx = viewH,
+                u = u, seed = seed,
+                outFbo = capFbo, outW = viewW, outH = viewH,
+            )
+            val bmp = lerBitmap(capFbo, viewW, viewH)
+            Handler(Looper.getMainLooper()).post { cb(bmp) }
+        }
+    }
+
+    // (Re)cria o FBO de captura no tamanho do frame.
+    private fun garantirCaptura(w: Int, h: Int) {
+        if (capFbo != 0 && capW == w && capH == h) return
+        if (capFbo != 0) GLES20.glDeleteFramebuffers(1, intArrayOf(capFbo), 0)
+        if (capTex != 0) GLES20.glDeleteTextures(1, intArrayOf(capTex), 0)
+        val tex = IntArray(1); GLES20.glGenTextures(1, tex, 0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, tex[0])
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, w, h, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null)
+        val fbo = IntArray(1); GLES20.glGenFramebuffers(1, fbo, 0)
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo[0])
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, tex[0], 0)
+        capTex = tex[0]; capFbo = fbo[0]; capW = w; capH = h
+    }
+
+    // Lê os pixels de um FBO para um Bitmap ARGB_8888.
+    private fun lerBitmap(fbo: Int, w: Int, h: Int): Bitmap {
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo)
+        val buf = ByteBuffer.allocateDirect(w * h * 4).order(ByteOrder.nativeOrder())
+        GLES20.glReadPixels(0, 0, w, h, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf)
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        buf.rewind(); bmp.copyPixelsFromBuffer(buf)
+        return bmp
     }
 
     // Monta em `cropMatrix` um scale central que preenche a view sem distorcer (aspect-fill).
@@ -118,5 +182,7 @@ class CameraGlRenderer(
         pipeline?.liberar(); pipeline = null
         surfaceTexture?.release(); surfaceTexture = null
         if (oesTex != 0) { GLES20.glDeleteTextures(1, intArrayOf(oesTex), 0); oesTex = 0 }
+        if (capFbo != 0) { GLES20.glDeleteFramebuffers(1, intArrayOf(capFbo), 0); capFbo = 0 }
+        if (capTex != 0) { GLES20.glDeleteTextures(1, intArrayOf(capTex), 0); capTex = 0 }
     }
 }

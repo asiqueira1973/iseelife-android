@@ -6,8 +6,13 @@
 package com.dablab.iseelife.telas.viewfinder
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.SurfaceTexture
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -24,6 +29,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,6 +59,7 @@ import com.dablab.iseelife.App
 import com.dablab.iseelife.camera.CameraController
 import com.dablab.iseelife.camera.GlPreviewView
 import com.dablab.iseelife.camera.LensDiscovery
+import com.dablab.iseelife.camera.PhotoSaver
 import com.dablab.iseelife.dados.LenteCamera
 import com.dablab.iseelife.dados.ModoCaptura
 import com.dablab.iseelife.designsystem.Estilo
@@ -76,6 +83,7 @@ fun ViewfinderScreen() {
     val lensesState = remember { mutableStateOf<LensDiscovery?>(null) }
     val lensState = remember { mutableStateOf(LenteCamera.WIDE) }
     var focoPonto by remember { mutableStateOf<Offset?>(null) }
+    var flash by remember { mutableStateOf(false) }
     var temPermissao by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
@@ -224,6 +232,29 @@ fun ViewfinderScreen() {
                         }
                     }
                 }
+
+                // Botão de disparo — dispara no TOQUE (down), reduzindo tremor (paridade iOS).
+                Box(
+                    modifier = Modifier
+                        .size(76.dp)
+                        .background(Estilo.TextoPrimario, CircleShape)
+                        .border(4.dp, Estilo.Painel, CircleShape)
+                        .pointerInput(Unit) {
+                            detectTapGestures(onPress = {
+                                vibrar(context)
+                                flash = true
+                                previewView.capturar { bmp ->
+                                    scope.launch { PhotoSaver.salvar(context, bmp) }
+                                }
+                            })
+                        }
+                )
+            }
+
+            // Flash de disparo: clarão branco rápido sobre o visor.
+            if (flash) {
+                LaunchedEffect(Unit) { delay(120); flash = false }
+                Box(modifier = Modifier.fillMaxSize().background(Estilo.TextoPrimario.copy(alpha = 0.7f)))
             }
         } else {
             Column(
@@ -241,6 +272,17 @@ fun ViewfinderScreen() {
             }
         }
     }
+}
+
+// Vibração curta de feedback do disparo (épico 8.6). Compatível com API 26+ (VibrationEffect).
+private fun vibrar(context: Context) {
+    val vib = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    }
+    vib?.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE))
 }
 
 // Avança para a próxima receita na ordem e devolve o id via callback.

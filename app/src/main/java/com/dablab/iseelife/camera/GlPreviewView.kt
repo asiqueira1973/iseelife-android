@@ -28,5 +28,8 @@ class GlPreviewView(context: Context) : GLSurfaceView(context) {
     fun definirUniforms(u: RecipeUniforms) = renderer.definirUniforms(u)
     fun definirTamanhoFrame(w: Int, h: Int) = renderer.definirTamanhoFrame(w, h)
 
+    // Captura o próximo frame filtrado (épico 8.6); callback na main thread com o Bitmap.
+    fun capturar(callback: (android.graphics.Bitmap) -> Unit) = renderer.solicitarCaptura(callback)
+
     fun liberarGl() = queueEvent { renderer.liberar() }
 }
