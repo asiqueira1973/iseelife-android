@@ -8,4 +8,10 @@
     <string name="tile_disparar">I See Life</string>
 
     <string name="carregando">Loading…</string>
+
+    <string name="paywall_titulo">Unlock I See Life</string>
+    <string name="paywall_beneficio">Shoot with every recipe, as many photos as you want. One-time purchase, no subscription.</string>
+    <string name="paywall_comprar">Buy</string>
+    <string name="paywall_restaurar">Restore purchase</string>
+    <string name="paywall_fechar">Not now</string>
 </resources>

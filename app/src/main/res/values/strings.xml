@@ -10,4 +10,11 @@
 
     <!-- Placeholder de fundação (8.0) — substituído pelas telas reais nos épicos seguintes. -->
     <string name="carregando">Carregando…</string>
+
+    <!-- Paywall (épico 8.7) -->
+    <string name="paywall_titulo">Desbloqueie o I See Life</string>
+    <string name="paywall_beneficio">Capture com todas as receitas, quantas fotos quiser. Compra única, sem assinatura.</string>
+    <string name="paywall_comprar">Comprar</string>
+    <string name="paywall_restaurar">Restaurar compra</string>
+    <string name="paywall_fechar">Agora não</string>
 </resources>

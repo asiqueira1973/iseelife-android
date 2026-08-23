@@ -6,6 +6,7 @@
 package com.dablab.iseelife.telas.viewfinder
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.SurfaceTexture
@@ -56,6 +57,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.delay
 import androidx.core.content.ContextCompat
 import com.dablab.iseelife.App
+import com.dablab.iseelife.BuildConfig
 import com.dablab.iseelife.camera.CameraController
 import com.dablab.iseelife.camera.GlPreviewView
 import com.dablab.iseelife.camera.LensDiscovery
@@ -64,6 +66,7 @@ import com.dablab.iseelife.dados.LenteCamera
 import com.dablab.iseelife.dados.ModoCaptura
 import com.dablab.iseelife.designsystem.Estilo
 import com.dablab.iseelife.filtros.RecipeUniforms
+import com.dablab.iseelife.telas.paywall.PaywallScreen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -72,7 +75,12 @@ fun ViewfinderScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val app = context.applicationContext as App
     val repo = app.repositorio
+    val billing = app.billing
     val scope = rememberCoroutineScope()
+
+    // Gate de paywall (épico 8.7): foto capturada fica pendente até a compra confirmar.
+    var fotoPendente by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var mostrarPaywall by remember { mutableStateOf(false) }
 
     // Estado de coordenação (câmera pronta + surface pronta + permissão).
     val previewView = remember { GlPreviewView(context) }
@@ -125,6 +133,8 @@ fun ViewfinderScreen() {
         }
     }
     val forceMono = (config?.previewBwEnabled == true) && modo == ModoCaptura.RUA
+    // Desbloqueado = flag persistida OU posse viva do billing (offline-friendly, regra 11.4).
+    val desbloqueado = (config?.purchaseUnlocked == true) || billing.possui
 
     // Empurra os uniforms da receita ativa (com preview P&B) para o renderer.
     LaunchedEffect(activeRecipe, forceMono) {
@@ -139,6 +149,25 @@ fun ViewfinderScreen() {
                 ativar = modo == ModoCaptura.RUA,
                 denominador = config?.streetShutterDenominator ?: 250,
             )
+        }
+    }
+
+    // Compra confirmada (ou restaurada): persiste o desbloqueio e salva a foto pendente sem novo
+    // toque, fechando o paywall (regra 11.4).
+    LaunchedEffect(billing.possui) {
+        if (billing.possui) {
+            repo.obterConfiguracao()?.let { c ->
+                if (!c.purchaseUnlocked) {
+                    repo.atualizarConfiguracao(
+                        c.copy(purchaseUnlocked = true, purchaseDate = System.currentTimeMillis())
+                    )
+                }
+            }
+            fotoPendente?.let { bmp ->
+                PhotoSaver.salvar(context, bmp)
+                fotoPendente = null
+            }
+            mostrarPaywall = false
         }
     }
 
@@ -239,12 +268,19 @@ fun ViewfinderScreen() {
                         .size(76.dp)
                         .background(Estilo.TextoPrimario, CircleShape)
                         .border(4.dp, Estilo.Painel, CircleShape)
-                        .pointerInput(Unit) {
+                        .pointerInput(desbloqueado) {
                             detectTapGestures(onPress = {
                                 vibrar(context)
                                 flash = true
                                 previewView.capturar { bmp ->
-                                    scope.launch { PhotoSaver.salvar(context, bmp) }
+                                    // Gate (regra 11.4): desbloqueado salva; senão segura a foto
+                                    // pendente e abre o paywall (não salva ainda).
+                                    if (desbloqueado) {
+                                        scope.launch { PhotoSaver.salvar(context, bmp) }
+                                    } else {
+                                        fotoPendente = bmp
+                                        mostrarPaywall = true
+                                    }
                                 }
                             })
                         }
@@ -255,6 +291,17 @@ fun ViewfinderScreen() {
             if (flash) {
                 LaunchedEffect(Unit) { delay(120); flash = false }
                 Box(modifier = Modifier.fillMaxSize().background(Estilo.TextoPrimario.copy(alpha = 0.7f)))
+            }
+
+            // Paywall (gate no 1º disparo, regra 11.4).
+            if (mostrarPaywall) {
+                PaywallScreen(
+                    precoFormatado = billing.precoFormatado,
+                    aoComprar = { (context as? Activity)?.let { billing.comprar(it) } },
+                    aoRestaurar = { billing.restaurar() },
+                    aoFechar = { mostrarPaywall = false; fotoPendente = null },
+                    aoSimular = if (BuildConfig.DEBUG) ({ billing.simularCompra() }) else null,
+                )
             }
         } else {
             Column(

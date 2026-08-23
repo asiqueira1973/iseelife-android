@@ -8,6 +8,8 @@
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Google Play Billing (compra única, épico 8.7). -->
+    <uses-permission android:name="com.android.vending.BILLING" />
     <!-- Escrita em storage só p/ salvar em Android 9 e anterior; Android 10+ usa MediaStore. -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
