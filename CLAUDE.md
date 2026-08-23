@@ -33,7 +33,10 @@ mas **não roda câmera** aqui.
 
 - `dados/` — Room: entidades, DAOs, `AppDatabase`, `RecipeSeed` (catálogo + `sincronizarCatalogo`),
   `Repositorio` (bootstrap na abertura). **Feito (épico 8.1).**
-- `filtros/` — GL: renderer, programa de shader, uniforms da receita, zebra/peaking. **(épico 8.2)**
+- `filtros/` — GL: `ShaderSources` (GLSL ES 2.0), `RecipeUniforms` (Receita→uniforms, desfaz o ×2),
+  `RecipeProgram` (compila/liga, envia uniforms, desenha), `GlUtil`, `OffscreenRecipeRenderer`
+  (aplica a receita a um Bitmap via EGL PBuffer+FBO = caminho da captura). **Feito (épico 8.2).**
+  Falta: zebra/peaking (roadmap, atrás de flag). WB é aproximação por ganho de canal — calibrar no device.
 - `camera/` — CameraX + Camera2Interop, controles manuais, prioridade de obturador, botão de
   volume. **(épicos 8.3–8.6)**
 - `compras/` — Play Billing. **(épico 8.7)**
@@ -69,6 +72,10 @@ mas **não roda câmera** aqui.
 
 ## Estado atual
 
-Épico **8.0 (esqueleto Gradle/Compose)** e **8.1 (modelo Room + seed/sincronização)** feitos. A
-`MainActivity` está numa tela-placeholder que lista as 6 receitas só para validar a fundação — é
-substituída pelas telas reais a partir do épico 8.3. Próximo: **8.2 (pipeline GLSL)**.
+Feitos: **8.0** (esqueleto Gradle/Compose), **8.1** (modelo Room + seed/sincronização) e **8.2**
+(pipeline de filtro GLSL — shader + uniforms + programa + render offscreen). A `MainActivity` é
+uma tela-placeholder que lista as 6 receitas — substituída pelas telas reais a partir do 8.3.
+Verificado: `assembleDebug` + `assembleDebugAndroidTest` OK; 10 testes unitários verdes. O shader
+GLSL só é exercitado com GPU real — há um teste instrumentado (`connectedDebugAndroidTest`) e a
+validação visual de cor lado a lado com o iOS é do Alexandre no device. Próximo: **8.3 (câmera
+CameraX + preview filtrado)**.
