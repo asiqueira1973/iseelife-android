@@ -42,8 +42,11 @@ mas **não roda câmera** aqui.
   `LumaAnalyzer`, `ExposureController` (obturador fixo + auto-ISO), `ManualControls` (ISO/obturador/
   EV/foco/WB, Camera2Interop), `PhotoSaver` (JPEG→MediaStore). **Preview (8.3) + Rua (8.4) + Pro
   (8.5) + captura (8.6) feitos.** Falta: botão de volume (8.10).
-- `telas/viewfinder/` — `ViewfinderScreen` (visor + disparo + gate), `ProControlsPanel`.
-- `telas/paywall/PaywallScreen` — paywall (8.7). `compras/BillingManager` — Play Billing.
+- `telas/RootView` — roteamento (onboarding|visor|permissão negada).
+- `telas/viewfinder/` — `ViewfinderScreen` (visor + disparo + gate + engrenagem), `ProControlsPanel`,
+  `RecipeSelectorSheet` (seletor de receitas).
+- `telas/onboarding/OnboardingScreen`, `telas/permissoes/PermissionDeniedScreen`,
+  `telas/configuracoes/SettingsScreen`, `telas/paywall/PaywallScreen`. `compras/BillingManager`.
 - `telas/viewfinder/` — `ViewfinderScreen` (visor Compose: permissão, troca de receita, lente).
 - `designsystem/Estilo` — cores (accent âmbar).
 - `compras/` — Play Billing. **(épico 8.7)**
@@ -88,8 +91,10 @@ orientação e filtro certos, salva no MediaStore). O app já TIRA E SALVA FOTO.
 câmera (exposição/foco manuais) valida no device. **8.7 (paywall + gate no 1º disparo) feito** —
 fluxo do gate verificado no emulador (paywall segura a foto; compra salva a pendente; desbloqueado
 salva direto). Compra REAL precisa do produto ativo no Play Console + testador de licença (device).
-Próximo: **8.8 onboarding/permissões, 8.9 configurações + seletor de receitas**, depois 8.10
-integrações (volume/App Shortcut/Quick Tile), 8.11 i18n.
+**8.8 (onboarding/permissões/roteamento) e 8.9 (configurações + seletor de receitas) feitos** —
+verificados no emulador (onboarding→visor→config→seletor). Próximo: **8.10 integrações (botões de
+volume, App Shortcut, Quick Settings Tile)**, depois **8.11 i18n** (troca de idioma em runtime — as
+strings já estão externalizadas pt/en). Falta ainda: Play Console + ficha da loja + ícone final.
 
 **Play Console (decidido com o Alexandre):** ele publica direto em PRODUÇÃO (tem 13 apps, conta
 estabelecida → isento do teste fechado de 20 pessoas). Mas o produto in-app `iseelife_desbloqueio_completo`
