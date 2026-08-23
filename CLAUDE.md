@@ -37,8 +37,11 @@ mas **não roda câmera** aqui.
   `RecipeProgram` (compila/liga, envia uniforms, desenha), `GlUtil`, `OffscreenRecipeRenderer`
   (aplica a receita a um Bitmap via EGL PBuffer+FBO = caminho da captura). **Feito (épico 8.2).**
   Falta: zebra/peaking (roadmap, atrás de flag). WB é aproximação por ganho de canal — calibrar no device.
-- `camera/` — CameraX + Camera2Interop, controles manuais, prioridade de obturador, botão de
-  volume. **(épicos 8.3–8.6)**
+- `camera/` — `LensDiscovery` (lentes), `CameraGlRenderer` (OES→pipeline), `GlPreviewView`
+  (GLSurfaceView), `CameraController` (CameraX↔SurfaceTexture). **Preview filtrado feito (8.3).**
+  Falta: controles manuais/Pro, prioridade de obturador, botão de volume (8.4–8.6).
+- `telas/viewfinder/` — `ViewfinderScreen` (visor Compose: permissão, troca de receita, lente).
+- `designsystem/Estilo` — cores (accent âmbar).
 - `compras/` — Play Billing. **(épico 8.7)**
 - `telas/` — onboarding, visor (rua/pro), seletor, paywall, configurações, permissão. **(8.8–8.9)**
 - `plataforma/` — App Shortcut, Quick Settings Tile, teclas de volume. **(épico 8.10)**
@@ -72,10 +75,20 @@ mas **não roda câmera** aqui.
 
 ## Estado atual
 
-Feitos: **8.0** (esqueleto Gradle/Compose), **8.1** (modelo Room + seed/sincronização) e **8.2**
-(pipeline de filtro GLSL — shader + uniforms + programa + render offscreen). A `MainActivity` é
-uma tela-placeholder que lista as 6 receitas — substituída pelas telas reais a partir do 8.3.
-Verificado: `assembleDebug` + `assembleDebugAndroidTest` OK; 10 testes unitários verdes. O shader
-GLSL só é exercitado com GPU real — há um teste instrumentado (`connectedDebugAndroidTest`) e a
-validação visual de cor lado a lado com o iOS é do Alexandre no device. Próximo: **8.3 (câmera
-CameraX + preview filtrado)**.
+Feitos: **8.0** (esqueleto), **8.1** (Room + seed/sync), **8.2** (pipeline GLSL 2 passes) e **8.3**
+(câmera CameraX + preview filtrado ao vivo — WYSIWYG). Verificado no emulador (câmera virtualscene):
+preview ao vivo filtrado, troca de receita em tempo real, sem crash. 10 testes unitários + 3
+instrumentados verdes. Cores validadas pelo Alexandre (contact sheet). Próximo: **8.4 (Modo Rua —
+toque p/ foco + prioridade de obturador)**, depois 8.5 Pro, 8.6 captura, 8.7 Play Billing, 8.8/8.9
+telas, 8.10 integrações, 8.11 i18n.
+
+**Rodar no emulador (sem Android Studio):**
+```bash
+export ANDROID_SDK_ROOT=/opt/homebrew/share/android-commandlinetools
+export PATH="$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
+emulator -avd iseelife_test -no-window -gpu swiftshader_indirect -camera-back virtualscene &
+adb wait-for-device && ./gradlew installDebug
+adb shell pm grant com.dablab.iseelife.debug android.permission.CAMERA
+adb shell am start -n com.dablab.iseelife.debug/com.dablab.iseelife.MainActivity
+```
+O AVD "iseelife_test" precisa de `hw.camera.back=virtualscene` (ou emulated) no config.ini.
