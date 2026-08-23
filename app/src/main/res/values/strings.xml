@@ -17,4 +17,25 @@
     <string name="paywall_comprar">Comprar</string>
     <string name="paywall_restaurar">Restaurar compra</string>
     <string name="paywall_fechar">Agora não</string>
+
+    <!-- Onboarding + permissões (épico 8.8) -->
+    <string name="onboarding_subtitulo">Fotografia de rua com receitas de cor aplicadas na hora do clique.</string>
+    <string name="onboarding_comecar">Permitir câmera e começar</string>
+    <string name="permissao_negada_titulo">Câmera bloqueada</string>
+    <string name="permissao_negada_texto">Ative a permissão de câmera nas configurações para usar o visor.</string>
+    <string name="permissao_abrir_config">Abrir configurações</string>
+    <string name="permissao_tentar">Tentar de novo</string>
+
+    <!-- Configurações + seletor (épico 8.9) -->
+    <string name="config_titulo">Configurações</string>
+    <string name="config_grid">Grade de terços</string>
+    <string name="config_nivel">Nível</string>
+    <string name="config_silencioso">Obturador silencioso</string>
+    <string name="config_preview_pb">Preview P&amp;B no Modo Rua</string>
+    <string name="config_idioma">Idioma</string>
+    <string name="config_piso_obturador">Obturador mínimo (Modo Rua)</string>
+    <string name="config_restaurar_compra">Restaurar compra</string>
+    <string name="config_comprado">Compra desbloqueada ✓</string>
+    <string name="config_fechar">Fechar</string>
+    <string name="seletor_titulo">Receita</string>
 </resources>

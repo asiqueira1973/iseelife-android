@@ -66,6 +66,7 @@ import com.dablab.iseelife.dados.LenteCamera
 import com.dablab.iseelife.dados.ModoCaptura
 import com.dablab.iseelife.designsystem.Estilo
 import com.dablab.iseelife.filtros.RecipeUniforms
+import com.dablab.iseelife.telas.configuracoes.SettingsScreen
 import com.dablab.iseelife.telas.paywall.PaywallScreen
 import kotlinx.coroutines.launch
 
@@ -81,6 +82,8 @@ fun ViewfinderScreen() {
     // Gate de paywall (épico 8.7): foto capturada fica pendente até a compra confirmar.
     var fotoPendente by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var mostrarPaywall by remember { mutableStateOf(false) }
+    var mostrarConfig by remember { mutableStateOf(false) }
+    var mostrarSeletor by remember { mutableStateOf(false) }
 
     // Estado de coordenação (câmera pronta + surface pronta + permissão).
     val previewView = remember { GlPreviewView(context) }
@@ -224,13 +227,18 @@ fun ViewfinderScreen() {
                 }
             }
 
-            // Alternância Rua/Pro (topo esquerdo).
-            Chip(
-                texto = if (modo == ModoCaptura.PRO) "PRO" else "RUA",
-                destaque = modo == ModoCaptura.PRO,
+            // Alternância Rua/Pro + engrenagem de Configurações (topo esquerdo).
+            Row(
                 modifier = Modifier.align(Alignment.TopStart).systemBarsPadding().padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                modo = if (modo == ModoCaptura.RUA) ModoCaptura.PRO else ModoCaptura.RUA
+                Chip(
+                    texto = if (modo == ModoCaptura.PRO) "PRO" else "RUA",
+                    destaque = modo == ModoCaptura.PRO,
+                ) {
+                    modo = if (modo == ModoCaptura.RUA) ModoCaptura.PRO else ModoCaptura.RUA
+                }
+                Chip(texto = "⚙︎") { mostrarConfig = true }
             }
 
             // Rodapé: painel do Pro (quando no Pro) + receita ativa (toque cicla).
@@ -254,12 +262,7 @@ fun ViewfinderScreen() {
                     }
                 }
                 Chip(texto = activeRecipe?.displayName ?: "—", destaque = true) {
-                    ciclarReceita(recipes, activeRecipe?.id) { proxId ->
-                        scope.launch {
-                            val c = repo.obterConfiguracao() ?: return@launch
-                            repo.atualizarConfiguracao(c.copy(activeRecipeId = proxId))
-                        }
-                    }
+                    mostrarSeletor = true
                 }
 
                 // Botão de disparo — dispara no TOQUE (down), reduzindo tremor (paridade iOS).
@@ -303,6 +306,34 @@ fun ViewfinderScreen() {
                     aoSimular = if (BuildConfig.DEBUG) ({ billing.simularCompra() }) else null,
                 )
             }
+
+            // Seletor de receitas (épico 8.9) — toque no nome da receita.
+            if (mostrarSeletor) {
+                RecipeSelectorSheet(
+                    receitas = recipes,
+                    ativaId = activeRecipe?.id,
+                    aoSelecionar = { id ->
+                        scope.launch {
+                            repo.obterConfiguracao()?.let { repo.atualizarConfiguracao(it.copy(activeRecipeId = id)) }
+                        }
+                        mostrarSeletor = false
+                    },
+                    aoFechar = { mostrarSeletor = false },
+                )
+            }
+
+            // Configurações (épico 8.9) — engrenagem.
+            if (mostrarConfig) {
+                config?.let { c ->
+                    SettingsScreen(
+                        config = c,
+                        aoSalvar = { novo -> scope.launch { repo.atualizarConfiguracao(novo) } },
+                        comprado = desbloqueado,
+                        aoRestaurar = { billing.restaurar() },
+                        aoFechar = { mostrarConfig = false },
+                    )
+                }
+            }
         } else {
             Column(
                 modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -330,17 +361,6 @@ private fun vibrar(context: Context) {
         context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
     }
     vib?.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE))
-}
-
-// Avança para a próxima receita na ordem e devolve o id via callback.
-private fun ciclarReceita(
-    recipes: List<com.dablab.iseelife.dados.Receita>,
-    atualId: String?,
-    aoTrocar: (String) -> Unit,
-) {
-    if (recipes.isEmpty()) return
-    val idx = recipes.indexOfFirst { it.id == atualId }.coerceAtLeast(0)
-    aoTrocar(recipes[(idx + 1) % recipes.size].id)
 }
 
 // Indicador de foco: quadrado âmbar centrado no ponto tocado, some após ~1s (épico 8.4).

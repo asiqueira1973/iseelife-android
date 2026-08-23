@@ -10,7 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.LaunchedEffect
-import com.dablab.iseelife.telas.viewfinder.ViewfinderScreen
+import com.dablab.iseelife.telas.RootView
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,9 +18,9 @@ class MainActivity : ComponentActivity() {
         val repositorio = (application as App).repositorio
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                // Prepara o banco na 1ª composição (idempotente).
+                // Prepara o banco na 1ª composição (idempotente): singleton + sincroniza catálogo.
                 LaunchedEffect(Unit) { repositorio.prepararNaAbertura() }
-                ViewfinderScreen()
+                RootView()
             }
         }
     }

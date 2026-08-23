@@ -14,4 +14,23 @@
     <string name="paywall_comprar">Buy</string>
     <string name="paywall_restaurar">Restore purchase</string>
     <string name="paywall_fechar">Not now</string>
+
+    <string name="onboarding_subtitulo">Street photography with color recipes applied as you shoot.</string>
+    <string name="onboarding_comecar">Allow camera &amp; start</string>
+    <string name="permissao_negada_titulo">Camera blocked</string>
+    <string name="permissao_negada_texto">Enable the camera permission in settings to use the viewfinder.</string>
+    <string name="permissao_abrir_config">Open settings</string>
+    <string name="permissao_tentar">Try again</string>
+
+    <string name="config_titulo">Settings</string>
+    <string name="config_grid">Rule-of-thirds grid</string>
+    <string name="config_nivel">Level</string>
+    <string name="config_silencioso">Silent shutter</string>
+    <string name="config_preview_pb">B&amp;W preview in Street Mode</string>
+    <string name="config_idioma">Language</string>
+    <string name="config_piso_obturador">Minimum shutter (Street Mode)</string>
+    <string name="config_restaurar_compra">Restore purchase</string>
+    <string name="config_comprado">Purchase unlocked ✓</string>
+    <string name="config_fechar">Close</string>
+    <string name="seletor_titulo">Recipe</string>
 </resources>

@@ -90,13 +90,17 @@ class ExposureController {
 
     val prioridadeAtiva: Boolean get() = ativo
 
-    // Escreve obturador fixo + ISO atual, com AE desligado (senão o AE ignora o manual).
+    // Escreve obturador fixo + ISO atual, com AE desligado (senão o AE ignora o manual). Também
+    // restaura foco e WB para automático contínuo — assim, ao entrar no Rua (ou trocar de receita),
+    // ajustes manuais do Modo Pro não "grudam" (paridade com o resetarFocoWBContinuo do iOS).
     private fun aplicar(ctrl: Camera2CameraControl) {
         ctrl.setCaptureRequestOptions(
             CaptureRequestOptions.Builder()
                 .setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF)
                 .setCaptureRequestOption(CaptureRequest.SENSOR_EXPOSURE_TIME, exposureNs)
                 .setCaptureRequestOption(CaptureRequest.SENSOR_SENSITIVITY, isoAtual)
+                .setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+                .setCaptureRequestOption(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO)
                 .build()
         )
     }
