@@ -38,8 +38,10 @@ mas **não roda câmera** aqui.
   (aplica a receita a um Bitmap via EGL PBuffer+FBO = caminho da captura). **Feito (épico 8.2).**
   Falta: zebra/peaking (roadmap, atrás de flag). WB é aproximação por ganho de canal — calibrar no device.
 - `camera/` — `LensDiscovery` (lentes), `CameraGlRenderer` (OES→pipeline), `GlPreviewView`
-  (GLSurfaceView), `CameraController` (CameraX↔SurfaceTexture). **Preview filtrado feito (8.3).**
-  Falta: controles manuais/Pro, prioridade de obturador, botão de volume (8.4–8.6).
+  (GLSurfaceView), `CameraController` (CameraX↔SurfaceTexture + foco por toque + prioridade de
+  obturador), `LumaAnalyzer` (luminância→ISO), `ExposureController` (obturador fixo + auto-ISO,
+  Camera2Interop). **Preview (8.3) + Modo Rua/foco/prioridade de obturador (8.4) feitos.**
+  Falta: controles manuais/Pro (8.5), captura (8.6), botão de volume (8.10).
 - `telas/viewfinder/` — `ViewfinderScreen` (visor Compose: permissão, troca de receita, lente).
 - `designsystem/Estilo` — cores (accent âmbar).
 - `compras/` — Play Billing. **(épico 8.7)**
@@ -78,9 +80,10 @@ mas **não roda câmera** aqui.
 Feitos: **8.0** (esqueleto), **8.1** (Room + seed/sync), **8.2** (pipeline GLSL 2 passes) e **8.3**
 (câmera CameraX + preview filtrado ao vivo — WYSIWYG). Verificado no emulador (câmera virtualscene):
 preview ao vivo filtrado, troca de receita em tempo real, sem crash. 10 testes unitários + 3
-instrumentados verdes. Cores validadas pelo Alexandre (contact sheet). Próximo: **8.4 (Modo Rua —
-toque p/ foco + prioridade de obturador)**, depois 8.5 Pro, 8.6 captura, 8.7 Play Billing, 8.8/8.9
-telas, 8.10 integrações, 8.11 i18n.
+instrumentados verdes. Cores validadas pelo Alexandre (contact sheet). **8.4 (Modo Rua: toque p/
+foco + prioridade de obturador) feito** — compila; comportamento de câmera valida no device.
+Próximo: **8.5 (Modo Pro — sliders manuais + botão Auto)**, depois 8.6 captura, 8.7 Play Billing,
+8.8/8.9 telas, 8.10 integrações, 8.11 i18n.
 
 **Rodar no emulador (sem Android Studio):**
 ```bash
