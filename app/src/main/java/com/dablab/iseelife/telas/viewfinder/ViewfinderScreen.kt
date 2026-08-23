@@ -11,14 +11,18 @@ import android.graphics.SurfaceTexture
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -33,12 +37,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.delay
 import androidx.core.content.ContextCompat
 import com.dablab.iseelife.App
 import com.dablab.iseelife.camera.CameraController
@@ -63,8 +72,10 @@ fun ViewfinderScreen() {
     val controller = remember { CameraController(context, lifecycleOwner) }
     val stState = remember { mutableStateOf<SurfaceTexture?>(null) }
     val providerReady = remember { mutableStateOf(false) }
+    val boundState = remember { mutableStateOf(false) }
     val lensesState = remember { mutableStateOf<LensDiscovery?>(null) }
     val lensState = remember { mutableStateOf(LenteCamera.WIDE) }
+    var focoPonto by remember { mutableStateOf<Offset?>(null) }
     var temPermissao by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
@@ -80,6 +91,7 @@ fun ViewfinderScreen() {
                 controller.ligar(st, lds.seletor(lensState.value)) { w, h ->
                     previewView.definirTamanhoFrame(w, h)
                 }
+                boundState.value = true
             }
         }
     }
@@ -104,6 +116,16 @@ fun ViewfinderScreen() {
         previewView.definirUniforms(RecipeUniforms.de(r, forceMono))
     }
 
+    // Prioridade de obturador no Modo Rua (regra 11.7): liga no Rua, desliga no Pro.
+    LaunchedEffect(modo, boundState.value, config?.streetShutterDenominator) {
+        if (boundState.value) {
+            controller.prioridadeObturador(
+                ativar = modo == ModoCaptura.RUA,
+                denominador = config?.streetShutterDenominator ?: 250,
+            )
+        }
+    }
+
     // Setup/teardown da câmera e da surface.
     DisposableEffect(Unit) {
         previewView.aoSurfaceTexturePronta = { st ->
@@ -126,6 +148,19 @@ fun ViewfinderScreen() {
     Box(modifier = Modifier.fillMaxSize().background(Estilo.FundoVisor)) {
         if (temPermissao) {
             AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+
+            // Camada transparente de toque: toque trava o foco no ponto (Modo Rua — épico 8.4).
+            Box(
+                modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+                    detectTapGestures { off ->
+                        controller.focarNoPonto(off.x, off.y, size.width, size.height)
+                        focoPonto = off
+                    }
+                }
+            )
+
+            // Indicador de foco âmbar; some após ~1s.
+            focoPonto?.let { ponto -> IndicadorFoco(ponto) { focoPonto = null } }
 
             // Botão de lente (só com mais de uma — regra 11.1), topo direito.
             lensesState.value?.let { lds ->
@@ -183,6 +218,23 @@ private fun ciclarReceita(
     if (recipes.isEmpty()) return
     val idx = recipes.indexOfFirst { it.id == atualId }.coerceAtLeast(0)
     aoTrocar(recipes[(idx + 1) % recipes.size].id)
+}
+
+// Indicador de foco: quadrado âmbar centrado no ponto tocado, some após ~1s (épico 8.4).
+@Composable
+private fun IndicadorFoco(ponto: Offset, aoFim: () -> Unit) {
+    val density = LocalDensity.current
+    val ladoPx = with(density) { 72.dp.toPx() }
+    LaunchedEffect(ponto) {
+        delay(1000)
+        aoFim()
+    }
+    Box(
+        modifier = Modifier
+            .offset { IntOffset((ponto.x - ladoPx / 2).toInt(), (ponto.y - ladoPx / 2).toInt()) }
+            .size(72.dp)
+            .border(1.5.dp, Estilo.Accent, RoundedCornerShape(4.dp))
+    )
 }
 
 @Composable

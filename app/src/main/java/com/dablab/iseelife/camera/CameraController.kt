@@ -1,30 +1,36 @@
-// CameraController.kt — liga o CameraX ao preview GL (épico 8.3). Obtém o ProcessCameraProvider,
-// descobre as lentes (LensDiscovery) e vincula um use case Preview cuja saída é a SurfaceTexture
-// da câmera (textura externa OES) consumida pelo shader. Trocar de lente re-vincula com outro
-// CameraSelector. O binding respeita o ciclo de vida (bindToLifecycle).
+// CameraController.kt — liga o CameraX ao preview GL e concentra os controles de câmera (épicos
+// 8.3/8.4). Vincula dois use cases: Preview (frames → SurfaceTexture → shader) e ImageAnalysis
+// (luminância → loop de ISO da prioridade de obturador). Expõe foco por toque (Modo Rua) e a
+// ativação/desativação da prioridade de obturador. O binding respeita o ciclo de vida.
 
 package com.dablab.iseelife.camera
 
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.view.Surface
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import java.util.concurrent.Executors
 
 class CameraController(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
 ) {
     private var provider: ProcessCameraProvider? = null
-    private var preview: Preview? = null
+    private var camera: Camera? = null
+    private val analiseExecutor = Executors.newSingleThreadExecutor()
+    private val exposicao = ExposureController()
 
     var lentes: LensDiscovery? = null
         private set
 
-    // Inicializa o provider e a descoberta de lentes; chama `onReady` na main thread.
     fun inicializar(onReady: (LensDiscovery) -> Unit) {
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
@@ -36,8 +42,8 @@ class CameraController(
         }, ContextCompat.getMainExecutor(context))
     }
 
-    // Vincula o Preview à `surfaceTexture` com a lente escolhida. `aoTamanhoFrame` informa a
-    // resolução real do frame (para o renderer calcular o aspect-fill).
+    // Vincula Preview + ImageAnalysis à lente escolhida. `aoTamanhoFrame` informa a resolução real
+    // do frame para o aspect-fill do preview.
     fun ligar(
         surfaceTexture: SurfaceTexture,
         seletor: CameraSelector,
@@ -45,19 +51,48 @@ class CameraController(
     ) {
         val p = provider ?: return
         val exec = ContextCompat.getMainExecutor(context)
-        val prev = Preview.Builder().build().also { preview = it }
-        prev.setSurfaceProvider(exec) { request ->
+
+        val preview = Preview.Builder().build()
+        preview.setSurfaceProvider(exec) { request ->
             val res = request.resolution
             surfaceTexture.setDefaultBufferSize(res.width, res.height)
             aoTamanhoFrame(res.width, res.height)
             val surface = Surface(surfaceTexture)
             request.provideSurface(surface, exec) { surface.release() }
         }
+
+        // ImageAnalysis: luminância média → loop de ISO da prioridade de obturador.
+        val analise = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+        analise.setAnalyzer(analiseExecutor, LumaAnalyzer { luma -> exposicao.aoLuma(luma) })
+
         p.unbindAll()
-        p.bindToLifecycle(lifecycleOwner, seletor, prev)
+        camera = p.bindToLifecycle(lifecycleOwner, seletor, preview, analise)
+        camera?.let { exposicao.configurar(it) }
+    }
+
+    // Toque para travar foco no ponto (Modo Rua — épico 8.4). `x,y` em px na view (0..w, 0..h).
+    // Sob prioridade de obturador, NÃO mede exposição (o loop de ISO governa) — só foco.
+    fun focarNoPonto(x: Float, y: Float, larguraView: Int, alturaView: Int) {
+        val cam = camera ?: return
+        val factory = SurfaceOrientedMeteringPointFactory(larguraView.toFloat(), alturaView.toFloat())
+        val ponto = factory.createPoint(x, y)
+        val flags = if (exposicao.prioridadeAtiva) FocusMeteringAction.FLAG_AF
+        else FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
+        val acao = FocusMeteringAction.Builder(ponto, flags)
+            .setAutoCancelDuration(3, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+        cam.cameraControl.startFocusAndMetering(acao)
+    }
+
+    // Liga/desliga a prioridade de obturador (Rua = liga; Pro = desliga). Devolve se foi aplicada.
+    fun prioridadeObturador(ativar: Boolean, denominador: Int): Boolean {
+        return if (ativar) exposicao.ativar(denominador) else { exposicao.desativar(); false }
     }
 
     fun desligar() {
         provider?.unbindAll()
+        camera = null
     }
 }
