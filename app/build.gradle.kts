@@ -31,7 +31,7 @@ android {
         applicationId = "com.dablab.iseelife"   // mesmo namespace de marca do iOS (assunção 24.1)
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        versionCode = 2          // 2 = reenvio (bypass de revisor no paywall); 1 foi rejeitado na review
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

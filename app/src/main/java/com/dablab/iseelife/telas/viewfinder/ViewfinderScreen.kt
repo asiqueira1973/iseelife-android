@@ -310,6 +310,9 @@ fun ViewfinderScreen() {
                     aoRestaurar = { billing.restaurar() },
                     aoFechar = { mostrarPaywall = false; fotoPendente = null },
                     aoSimular = if (BuildConfig.DEBUG) ({ billing.simularCompra() }) else null,
+                    // Atalho oculto p/ o revisor da Play (app sem login): 7 toques no título
+                    // desbloqueiam sem pagamento. Documentado no App access da Play.
+                    aoDesbloquearRevisor = { billing.simularCompra() },
                 )
             }
 
