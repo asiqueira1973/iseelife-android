@@ -88,22 +88,11 @@ local-first, 100% offline, compra única. Package `com.dablab.iseelife`. Conta *
 
 ## D. Declarações do app ("Set up your app" — tarefas do painel)
 
-- **App access (Sign in details):** ⚠️ **NÃO** marcar "available without special access" — a Play
-  rejeitou por isso (o revisor não passou do paywall). Marcar **"All or some functionality is
-  restricted"** e adicionar uma instrução (usuário/senha em branco — não há login) com o **bypass de
-  revisor** (7 toques no título do paywall):
-  ```
-  This app has NO login or account — every screen is reachable without signing in.
-  One feature (saving a captured photo) is behind a one-time purchase. To review the FULL
-  experience WITHOUT any payment or billing information, use the built-in reviewer bypass:
-  1. Open the app and allow the Camera permission.
-  2. Tap the round shutter button (bottom center) once. The purchase screen appears
-     ("Unlock I See Life" / "Desbloqueie o I See Life").
-  3. On that screen, tap the TITLE text 7 times.
-  4. The app unlocks all features immediately (no payment, no billing info) and saves the photo.
-     All later captures save normally.
-  Support: alexandre@dablab.com.br
-  ```
+- **App access (Sign in details):** voltar para **"All functionality is available without special
+  access"**. ✅ A partir da v3 o app dá **10 fotos grátis** antes do paywall — ou seja, o revisor (e
+  qualquer usuário) usa o app inteiro **sem pagamento e sem login**; o paywall só aparece depois das
+  10. Isso resolveu as duas rejeições ("app restrito por paywall" e "login credentials incorrect")
+  na raiz — não há mais bypass nem instrução de login.
 - **Ads:** **"No, my app does not contain ads."**
 - **Content rating (questionário IARC):**
   - Email: `alexandre@dablab.com.br`

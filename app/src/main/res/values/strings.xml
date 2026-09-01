@@ -17,6 +17,7 @@
     <string name="paywall_comprar">Comprar</string>
     <string name="paywall_restaurar">Restaurar compra</string>
     <string name="paywall_fechar">Agora não</string>
+    <string name="gratis_restantes">%1$d fotos grátis</string>
 
     <!-- Onboarding + permissões (épico 8.8) -->
     <string name="onboarding_subtitulo">Fotografia de rua com receitas de cor aplicadas na hora do clique.</string>

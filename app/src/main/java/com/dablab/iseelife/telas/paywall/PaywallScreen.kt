@@ -15,10 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -36,13 +32,7 @@ fun PaywallScreen(
     aoRestaurar: () -> Unit,
     aoFechar: () -> Unit,
     aoSimular: (() -> Unit)? = null,        // só em debug
-    aoDesbloquearRevisor: () -> Unit = {},  // atalho oculto p/ o revisor da Play (sem login)
 ) {
-    // Desbloqueio de revisor (regra 11.4 / requisito da Play p/ app sem login): tocar 7× no título
-    // libera o app sem pagamento — o revisor do Google faz isso com a instrução do App access.
-    // Presente no build de release; obscuro o bastante para não ser acionado por acaso.
-    var toquesTitulo by remember { mutableIntStateOf(0) }
-
     Box(
         modifier = Modifier.fillMaxSize().background(Estilo.FundoVisor.copy(alpha = 0.92f)),
         contentAlignment = Alignment.Center,
@@ -58,10 +48,6 @@ fun PaywallScreen(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.clickable {
-                    toquesTitulo++
-                    if (toquesTitulo >= 7) { toquesTitulo = 0; aoDesbloquearRevisor() }
-                },
             )
             Text(
                 text = stringResource(R.string.paywall_beneficio),

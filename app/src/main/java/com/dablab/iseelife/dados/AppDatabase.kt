@@ -10,10 +10,20 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
+// Migração 1→2 (aditiva): adiciona a coluna da cota grátis. Nunca destrutiva — preservar o
+// desbloqueio de compra do usuário. Ver regra da migração aditiva na doc técnica.
+private val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE configuracao_usuario ADD COLUMN fotos_gratis_usadas INTEGER NOT NULL DEFAULT 0")
+    }
+}
 
 @Database(
     entities = [ConfiguracaoUsuario::class, Receita::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Conversores::class)
@@ -32,7 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "iseelife.db",
-                ).build().also { instancia = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instancia = it }
             }
     }
 }

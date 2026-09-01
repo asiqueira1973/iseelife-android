@@ -14,6 +14,7 @@
     <string name="paywall_comprar">Buy</string>
     <string name="paywall_restaurar">Restore purchase</string>
     <string name="paywall_fechar">Not now</string>
+    <string name="gratis_restantes">%1$d free photos</string>
 
     <string name="onboarding_subtitulo">Street photography with color recipes applied as you shoot.</string>
     <string name="onboarding_comecar">Allow camera &amp; start</string>

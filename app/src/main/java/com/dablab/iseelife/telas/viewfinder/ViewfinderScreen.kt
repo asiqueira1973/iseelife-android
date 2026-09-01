@@ -49,6 +49,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -59,6 +60,7 @@ import kotlinx.coroutines.delay
 import androidx.core.content.ContextCompat
 import com.dablab.iseelife.App
 import com.dablab.iseelife.BuildConfig
+import com.dablab.iseelife.R
 import com.dablab.iseelife.camera.CameraController
 import com.dablab.iseelife.camera.GlPreviewView
 import com.dablab.iseelife.camera.LensDiscovery
@@ -139,6 +141,10 @@ fun ViewfinderScreen() {
     val forceMono = (config?.previewBwEnabled == true) && modo == ModoCaptura.RUA
     // Desbloqueado = flag persistida OU posse viva do billing (offline-friendly, regra 11.4).
     val desbloqueado = (config?.purchaseUnlocked == true) || billing.possui
+    // Cota grátis: N fotos salvas de graça antes do paywall. Deixa o app totalmente usável sem
+    // pagamento/login (revisor da Play acessa tudo) e é "experimente antes de comprar".
+    val quotaGratis = 10
+    val gratisRestantes = (quotaGratis - (config?.freeSavesUsed ?: 0)).coerceAtLeast(0)
 
     // Empurra os uniforms da receita ativa (com preview P&B) para o renderer.
     LaunchedEffect(activeRecipe, forceMono) {
@@ -201,8 +207,21 @@ fun ViewfinderScreen() {
         vibrar(context)
         flash = true
         previewView.capturar { bmp ->
-            if (desbloqueado) scope.launch { PhotoSaver.salvar(context, bmp) }
-            else { fotoPendente = bmp; mostrarPaywall = true }
+            when {
+                // Comprado → salva sempre.
+                desbloqueado -> scope.launch { PhotoSaver.salvar(context, bmp) }
+                // Ainda tem cota grátis → salva e consome uma.
+                gratisRestantes > 0 -> {
+                    scope.launch { PhotoSaver.salvar(context, bmp) }
+                    scope.launch {
+                        repo.obterConfiguracao()?.let {
+                            repo.atualizarConfiguracao(it.copy(freeSavesUsed = it.freeSavesUsed + 1))
+                        }
+                    }
+                }
+                // Cota esgotada e sem compra → segura a foto e abre o paywall.
+                else -> { fotoPendente = bmp; mostrarPaywall = true }
+            }
         }
     }
     // Registra a versão sempre atual do disparo no App, para os botões de volume (MainActivity).
@@ -284,6 +303,15 @@ fun ViewfinderScreen() {
                     mostrarSeletor = true
                 }
 
+                // Indicador discreto de fotos grátis restantes (só antes da compra).
+                if (!desbloqueado) {
+                    Text(
+                        text = stringResource(R.string.gratis_restantes, gratisRestantes),
+                        color = Estilo.TextoSecundario,
+                        fontSize = 12.sp,
+                    )
+                }
+
                 // Botão de disparo — dispara no TOQUE (down), reduzindo tremor (paridade iOS).
                 Box(
                     modifier = Modifier
@@ -291,7 +319,7 @@ fun ViewfinderScreen() {
                         .background(Estilo.TextoPrimario, CircleShape)
                         .border(4.dp, Estilo.Painel, CircleShape)
                         .pointerInput(Unit) {
-                            detectTapGestures(onPress = { disparar() })
+                            detectTapGestures(onPress = { dispararAtual.value() })
                         }
                 )
             }
@@ -310,9 +338,6 @@ fun ViewfinderScreen() {
                     aoRestaurar = { billing.restaurar() },
                     aoFechar = { mostrarPaywall = false; fotoPendente = null },
                     aoSimular = if (BuildConfig.DEBUG) ({ billing.simularCompra() }) else null,
-                    // Atalho oculto p/ o revisor da Play (app sem login): 7 toques no título
-                    // desbloqueiam sem pagamento. Documentado no App access da Play.
-                    aoDesbloquearRevisor = { billing.simularCompra() },
                 )
             }
 

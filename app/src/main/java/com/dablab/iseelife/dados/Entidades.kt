@@ -29,6 +29,9 @@ data class ConfiguracaoUsuario(
     @ColumnInfo(name = "onboarding_concluido") val onboardingDone: Boolean = false,
     @ColumnInfo(name = "receita_ativa_id") val activeRecipeId: String? = null, // uuid, por valor
     @ColumnInfo(name = "rua_obturador_denominador") val streetShutterDenominator: Int = 250,
+    // Cota grátis (regra 11.4): fotos salvas de graça antes do paywall. Assim o app é totalmente
+    // usável sem pagamento/login (o revisor da Play acessa tudo), e é "experimente antes de comprar".
+    @ColumnInfo(name = "fotos_gratis_usadas") val freeSavesUsed: Int = 0,
 )
 
 // receita — catálogo fixo, somente-leitura no MVP. Cada campo alimenta o shader (regra 11.6).
