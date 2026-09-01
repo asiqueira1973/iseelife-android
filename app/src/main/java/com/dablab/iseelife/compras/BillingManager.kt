@@ -80,11 +80,14 @@ class BillingManager(context: Context) : PurchasesUpdatedListener, BillingClient
                 )
             )
             .build()
-        client.queryProductDetailsAsync(params) { _, lista ->
-            val pd = lista.firstOrNull()
+        // Billing 8: o callback devolve QueryProductDetailsResult (não mais List<ProductDetails>).
+        client.queryProductDetailsAsync(params) { _, resultado ->
+            val pd = resultado.productDetailsList.firstOrNull()
             main.post {
                 detalhes = pd
-                precoFormatado = pd?.oneTimePurchaseOfferDetails?.formattedPrice
+                // Billing 8 modela one-time products com purchase options (lista de ofertas).
+                precoFormatado = pd?.oneTimePurchaseOfferDetailsList?.firstOrNull()?.formattedPrice
+                    ?: pd?.oneTimePurchaseOfferDetails?.formattedPrice
             }
         }
     }
@@ -92,14 +95,14 @@ class BillingManager(context: Context) : PurchasesUpdatedListener, BillingClient
     // Inicia o fluxo de compra (regra 11.4). Precisa da Activity em primeiro plano.
     fun comprar(activity: Activity) {
         val pd = detalhes ?: run { conectar(); return }
+        // Billing 8: informa a purchase option (offer token) da oferta única, quando existir.
+        val offerToken = pd.oneTimePurchaseOfferDetailsList?.firstOrNull()?.offerToken
+        val produtoParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(pd)
+            .apply { if (offerToken != null) setOfferToken(offerToken) }
+            .build()
         val params = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(
-                listOf(
-                    BillingFlowParams.ProductDetailsParams.newBuilder()
-                        .setProductDetails(pd)
-                        .build()
-                )
-            )
+            .setProductDetailsParamsList(listOf(produtoParams))
             .build()
         client.launchBillingFlow(activity, params)
     }

@@ -25,13 +25,13 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.dablab.iseelife"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.dablab.iseelife"   // mesmo namespace de marca do iOS (assunção 24.1)
         minSdk = 26
-        targetSdk = 35
-        versionCode = 3          // 3 = cota grátis (10 fotos) — app usável sem pagamento/login na review
+        targetSdk = 36
+        versionCode = 4          // 4 = Billing 8 + targetSdk 36 (exigências novas da Play) + cota grátis
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
