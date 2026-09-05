@@ -31,8 +31,8 @@ android {
         applicationId = "com.dablab.iseelife"   // mesmo namespace de marca do iOS (assunção 24.1)
         minSdk = 26
         targetSdk = 36
-        versionCode = 4          // 4 = Billing 8 + targetSdk 36 (exigências novas da Play) + cota grátis
-        versionName = "1.0.0"
+        versionCode = 5          // 5 = catálogo de receitas v1.2 (paridade iOS): +Retrato 400 +5 Ricoh, -Mono/Positivo/Vívida
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

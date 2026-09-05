@@ -11,7 +11,10 @@ package com.dablab.iseelife.dados
 // Catálogo canônico + rotina de sincronização. Objeto sem estado (só lógica).
 object RecipeSeed {
 
-    // As 6 receitas fixas, na ordem do seletor. Ordem 1 = Neutra (raw, padrão neutro, regra 11.3).
+    // As 9 receitas fixas (v1.2, paridade com o iOS), na ordem do seletor. Ordem 1 = Neutra (raw,
+    // padrão neutro, regra 11.3). Mantidas: Neutra/Classic/Soft/Retrato 400; novas (Ricoh GR III):
+    // Color Film/Americana Color/Analog Film/Monochrome Film/Black & White Negative. Removidas:
+    // Mono/Positivo/Vívida (o sincronizarCatalogo apaga na próxima abertura).
     // hl/sh/sat abaixo estão em MEIO-PASSO ×2 (ex.: Classic hl real -1 → -2 aqui).
     fun receitasPadrao(): List<Receita> = listOf(
         // "Neutra" — imagem crua, sem receita. Todos os parâmetros neutros → o shader faz
@@ -46,40 +49,87 @@ object RecipeSeed {
             sharpness = -1, monochrome = false, monoFilter = null,
             displayOrder = 3,
         ),
-        // "Mono" — insp. Acros + filtro vermelho. shadow +4 real (moody).
+        // "Retrato 400" — negativo de retrato ISO 400 (Fuji), aprovada no TestFlight iOS.
         Receita(
-            displayName = "Mono",
-            inspiration = "Acros+R",
-            highlight = -2, shadow = 8, saturation = 0,   // real -1 / +4 / 0 (sat N/A em mono)
-            whiteBalanceKelvin = null, tint = -1,
+            displayName = "Retrato 400",
+            inspiration = "Negativo de retrato ISO 400",
+            highlight = 0, shadow = -4, saturation = 4,   // real 0 / -2 / +2
+            whiteBalanceKelvin = 5200, tint = 0,
             grainIntensity = IntensidadeGrao.FORTE,
-            sharpness = -2, monochrome = true, monoFilter = FiltroMono.VERMELHO,
+            sharpness = -2, monochrome = false, monoFilter = null,
             displayOrder = 4,
-        ),
-        // "Positivo" — insp. Ricoh GR III Positive Film. WB "fria" → 5000K.
-        Receita(
-            displayName = "Positivo",
-            inspiration = "Ricoh GR Positive Film",
-            highlight = -6, shadow = 6, saturation = 6,   // real -3 / +3 / +3
-            whiteBalanceKelvin = 5000, tint = 3,
-            grainIntensity = IntensidadeGrao.NENHUM,
-            sharpness = 0, monochrome = false, monoFilter = null,
-            displayOrder = 5,
-        ),
-        // "Vívida" (v1.1) — insp. Kodachrome 64: cores punchy, clareza alta, grão fino. Única das
-        // receitas v1.1 mantida (Retrô/Retrato/Dourada removidas após validação no device).
-        Receita(
-            displayName = "Vívida",
-            inspiration = "Kodachrome 64",
-            highlight = 0, shadow = 1, saturation = 4,    // real 0 / +0,5 / +2
-            whiteBalanceKelvin = 5500, tint = 0,
-            grainIntensity = IntensidadeGrao.FRACO,
-            sharpness = 1, monochrome = false, monoFilter = null,
-            displayOrder = 6,
-            redAdjust = 2, blueAdjust = -5,
+            redAdjust = 1, blueAdjust = -6,
             colorChrome = EfeitoColorChrome.FORTE,
             colorChromeBlue = EfeitoColorChrome.DESLIGADO,
-            clarity = 3, grainSize = TamanhoGrao.PEQUENO,
+            clarity = -2, grainSize = TamanhoGrao.PEQUENO,
+        ),
+
+        // ---- Receitas inspiradas na Ricoh GR III (Image Control). Mapeamento APROXIMADO (Hue,
+        // High/Low Key, Contrast base etc. sem campo no modelo); paridade 1:1 com o iOS.
+
+        // "Color Film" — Effect Standard, natural, sombras suaves.
+        Receita(
+            displayName = "Color Film",
+            inspiration = "Ricoh GR — Standard",
+            highlight = 4, shadow = -8, saturation = 2,   // real +2 / -4 / +1
+            whiteBalanceKelvin = null, tint = -1,         // WB Auto; comp G:2
+            grainIntensity = IntensidadeGrao.NENHUM,
+            sharpness = 1, monochrome = false, monoFilter = null,
+            displayOrder = 5,
+            redAdjust = 5, blueAdjust = -5,               // WB comp A:9 (âmbar)
+            colorChrome = EfeitoColorChrome.DESLIGADO,
+            colorChromeBlue = EfeitoColorChrome.DESLIGADO,
+            clarity = -1,
+        ),
+        // "Americana Color" — Positive Film, saturada/contrastada, WB quente (CT 5250K).
+        Receita(
+            displayName = "Americana Color",
+            inspiration = "Ricoh GR — Positive Film",
+            highlight = -6, shadow = 8, saturation = 4,   // real -3 / +4 / +2
+            whiteBalanceKelvin = 5250, tint = -3,         // CT 5250K; comp G:5
+            grainIntensity = IntensidadeGrao.NENHUM,
+            sharpness = 1, monochrome = false, monoFilter = null,
+            displayOrder = 6,
+            redAdjust = 5, blueAdjust = -5,               // WB comp A:10 (âmbar)
+            colorChrome = EfeitoColorChrome.FRACO,
+            colorChromeBlue = EfeitoColorChrome.DESLIGADO,
+            clarity = 2,
+        ),
+        // "Analog Film" — Positive Film bem saturada (Sat +4), WB 6300K.
+        Receita(
+            displayName = "Analog Film",
+            inspiration = "Ricoh GR — Positive Film",
+            highlight = -8, shadow = 8, saturation = 8,   // real -4 / +4 / +4
+            whiteBalanceKelvin = 6300, tint = -3,         // CT 6300K; comp G:6
+            grainIntensity = IntensidadeGrao.NENHUM,
+            sharpness = 0, monochrome = false, monoFilter = null,
+            displayOrder = 7,
+            redAdjust = 1, blueAdjust = -1,               // WB comp A:1 (âmbar leve)
+            colorChrome = EfeitoColorChrome.FRACO,
+            colorChromeBlue = EfeitoColorChrome.DESLIGADO,
+            clarity = -2,
+        ),
+        // "Monochrome Film" — BW Monotone, contraste baixo, grão leve.
+        Receita(
+            displayName = "Monochrome Film",
+            inspiration = "Ricoh GR — BW Monotone",
+            highlight = -8, shadow = -8, saturation = 0,  // real -4 / -4 / 0
+            whiteBalanceKelvin = null, tint = 0,
+            grainIntensity = IntensidadeGrao.FRACO,       // Grain Effect 1
+            sharpness = 1, monochrome = true, monoFilter = null,
+            displayOrder = 8,
+            clarity = 2, grainSize = TamanhoGrao.PEQUENO,
+        ),
+        // "Black & White Negative" — Hi-Contrast B&W, highlights suaves, grão presente.
+        Receita(
+            displayName = "Black & White Negative",
+            inspiration = "Ricoh GR — Hi-Contrast B&W",
+            highlight = -8, shadow = 0, saturation = 0,   // real -4 / 0 / 0
+            whiteBalanceKelvin = null, tint = 0,
+            grainIntensity = IntensidadeGrao.MEDIO,       // Grain Effect 2
+            sharpness = -1, monochrome = true, monoFilter = null,
+            displayOrder = 9,
+            clarity = 2, grainSize = TamanhoGrao.PEQUENO,
         ),
     )
 
