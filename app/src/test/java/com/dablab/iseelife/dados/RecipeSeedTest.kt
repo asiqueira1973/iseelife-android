@@ -34,12 +34,18 @@ private class FakeReceitaDao : ReceitaDao {
 
 class RecipeSeedTest {
 
-    // Banco vazio → sincronizar cria as 6 receitas na ordem certa (regra 11.5).
-    @Test fun bancoVazio_criaSeisReceitasNaOrdem() = runBlocking {
+    // Banco vazio → sincronizar cria as 9 receitas na ordem certa (regra 11.5). Catálogo v1.2.
+    @Test fun bancoVazio_criaNoveReceitasNaOrdem() = runBlocking {
         val dao = FakeReceitaDao()
         RecipeSeed.sincronizarCatalogo(dao)
         val nomes = dao.listarTodas().map { it.displayName }
-        assertEquals(listOf("Neutra", "Classic", "Soft", "Mono", "Positivo", "Vívida"), nomes)
+        assertEquals(
+            listOf(
+                "Neutra", "Classic", "Soft", "Retrato 400", "Color Film",
+                "Americana Color", "Analog Film", "Monochrome Film", "Black & White Negative",
+            ),
+            nomes,
+        )
     }
 
     // Rodar duas vezes não duplica (upsert por nome, regra 11.5).
@@ -47,7 +53,7 @@ class RecipeSeedTest {
         val dao = FakeReceitaDao()
         RecipeSeed.sincronizarCatalogo(dao)
         RecipeSeed.sincronizarCatalogo(dao)
-        assertEquals(6, dao.contar())
+        assertEquals(9, dao.contar())
     }
 
     // Upsert preserva o `id` da linha existente → receita_ativa_id continua válido (regra 11.5).
@@ -72,7 +78,7 @@ class RecipeSeedTest {
         RecipeSeed.sincronizarCatalogo(dao)
         assertNull(dao.buscarPorNome("Retrô"))                 // fixa removida
         assertNotNull(dao.buscarPorNome("MinhaReceita"))        // do usuário preservada
-        assertEquals(7, dao.contar())                          // 6 canônicas + 1 do usuário
+        assertEquals(10, dao.contar())                         // 9 canônicas + 1 do usuário
     }
 
     // Encoding ×2 (regra 11.2): os valores de seed batem com os do iOS (valor REAL dobrado).
@@ -82,21 +88,22 @@ class RecipeSeedTest {
         assertEquals(-2, por["Classic"]!!.highlight)
         assertEquals(2, por["Classic"]!!.shadow)
         assertEquals(4, por["Classic"]!!.saturation)
-        // Positivo real -3/+3/+3 → store -6/+6/+6
-        assertEquals(-6, por["Positivo"]!!.highlight)
-        assertEquals(6, por["Positivo"]!!.shadow)
-        // Vívida real sh +0,5 → store +1; campos v1.1
-        assertEquals(1, por["Vívida"]!!.shadow)
-        assertEquals(2, por["Vívida"]!!.redAdjust)
-        assertEquals(-5, por["Vívida"]!!.blueAdjust)
-        assertEquals(EfeitoColorChrome.FORTE, por["Vívida"]!!.colorChrome)
+        // Americana Color real -3/+4/+2 → store -6/+8/+4
+        assertEquals(-6, por["Americana Color"]!!.highlight)
+        assertEquals(8, por["Americana Color"]!!.shadow)
+        // Retrato 400: sh real -2 → store -4; campos v1.1 (R/B, color chrome)
+        assertEquals(-4, por["Retrato 400"]!!.shadow)
+        assertEquals(1, por["Retrato 400"]!!.redAdjust)
+        assertEquals(-6, por["Retrato 400"]!!.blueAdjust)
+        assertEquals(EfeitoColorChrome.FORTE, por["Retrato 400"]!!.colorChrome)
         // Neutra é toda neutra (raw)
         val n = por["Neutra"]!!
         assertTrue(n.highlight == 0 && n.shadow == 0 && n.saturation == 0)
         assertNull(n.whiteBalanceKelvin)
         assertFalse(n.monochrome)
-        // Mono usa filtro vermelho
-        assertEquals(FiltroMono.VERMELHO, por["Mono"]!!.monoFilter)
-        assertTrue(por["Mono"]!!.monochrome)
+        // As receitas P&B do catálogo v1.2 são monocromáticas e sem filtro colorido (Rec.601).
+        assertTrue(por["Monochrome Film"]!!.monochrome)
+        assertNull(por["Monochrome Film"]!!.monoFilter)
+        assertTrue(por["Black & White Negative"]!!.monochrome)
     }
 }

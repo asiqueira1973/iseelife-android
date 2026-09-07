@@ -40,23 +40,24 @@ class RecipeUniformsTest {
         assertEquals(0.05f, u.grainOpacity, D)
     }
 
-    @Test fun mono_usaPesosVermelho() {
-        val u = RecipeUniforms.de(porNome["Mono"]!!)
+    @Test fun mono_semFiltro_usaPesosRec601() {
+        // Catálogo v1.2: as receitas P&B não usam filtro colorido → pesos Rec.601.
+        val u = RecipeUniforms.de(porNome["Monochrome Film"]!!)
         assertTrue(u.mono)
-        assertEquals(0.80f, u.monoWeights[0], D)
-        assertEquals(0.10f, u.monoWeights[1], D)
-        assertEquals(0.10f, u.monoWeights[2], D)
-        assertEquals(0.18f, u.grainOpacity, D)  // grão forte
+        assertEquals(0.299f, u.monoWeights[0], D)
+        assertEquals(0.587f, u.monoWeights[1], D)
+        assertEquals(0.114f, u.monoWeights[2], D)
+        assertEquals(0.05f, u.grainOpacity, D)  // Grain Effect 1 → fraco
     }
 
-    @Test fun vivida_shiftRB_chrome_clareza() {
-        val u = RecipeUniforms.de(porNome["Vívida"]!!)
-        // R/B: rGain 1+(2/9)*0.18 ; bGain 1+(-5/9)*0.18
-        assertEquals(1.0f + (2f / 9f) * 0.18f, u.rbGain[0], D)
-        assertEquals(1.0f + (-5f / 9f) * 0.18f, u.rbGain[2], D)
+    @Test fun retrato400_shiftRB_chrome_clareza() {
+        val u = RecipeUniforms.de(porNome["Retrato 400"]!!)
+        // R/B: rGain 1+(1/9)*0.18 ; bGain 1+(-6/9)*0.18
+        assertEquals(1.0f + (1f / 9f) * 0.18f, u.rbGain[0], D)
+        assertEquals(1.0f + (-6f / 9f) * 0.18f, u.rbGain[2], D)
         // color chrome forte (0.11) → fator 0.89
         assertEquals(0.89f, u.chrome, D)
-        // clareza real 0.75 → *0.6 = 0.45
-        assertEquals(0.45f, u.clarity, D)
+        // clareza -2 → real -0.5 (lado negativo não multiplica por 0.6)
+        assertEquals(-0.5f, u.clarity, D)
     }
 }
