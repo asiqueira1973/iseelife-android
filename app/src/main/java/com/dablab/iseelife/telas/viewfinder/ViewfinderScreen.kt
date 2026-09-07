@@ -202,26 +202,38 @@ fun ViewfinderScreen() {
 
     // Ação de disparo compartilhada — usada pelo botão da tela E pelos botões de volume (8.10).
     // Ignora enquanto um overlay (paywall/config/seletor) está aberto.
+    // Gate de compra/cota (regra 11.4) — recebe o Bitmap final (alta-res ou fallback) e decide.
+    val processar: (android.graphics.Bitmap) -> Unit = { bmp ->
+        when {
+            // Comprado → salva sempre.
+            desbloqueado -> scope.launch { PhotoSaver.salvar(context, bmp) }
+            // Ainda tem cota grátis → salva e consome uma.
+            gratisRestantes > 0 -> {
+                scope.launch { PhotoSaver.salvar(context, bmp) }
+                scope.launch {
+                    repo.obterConfiguracao()?.let {
+                        repo.atualizarConfiguracao(it.copy(freeSavesUsed = it.freeSavesUsed + 1))
+                    }
+                }
+            }
+            // Cota esgotada e sem compra → segura a foto e abre o paywall.
+            else -> { fotoPendente = bmp; mostrarPaywall = true }
+        }
+    }
+
     val disparar: () -> Unit = disparar@{
         if (mostrarPaywall || mostrarConfig || mostrarSeletor) return@disparar
         vibrar(context)
         flash = true
-        previewView.capturar { bmp ->
-            when {
-                // Comprado → salva sempre.
-                desbloqueado -> scope.launch { PhotoSaver.salvar(context, bmp) }
-                // Ainda tem cota grátis → salva e consome uma.
-                gratisRestantes > 0 -> {
-                    scope.launch { PhotoSaver.salvar(context, bmp) }
-                    scope.launch {
-                        repo.obterConfiguracao()?.let {
-                            repo.atualizarConfiguracao(it.copy(freeSavesUsed = it.freeSavesUsed + 1))
-                        }
-                    }
-                }
-                // Cota esgotada e sem compra → segura a foto e abre o paywall.
-                else -> { fotoPendente = bmp; mostrarPaywall = true }
+        val receita = activeRecipe
+        if (receita != null) {
+            // Caminho principal: foto do sensor em ALTA resolução (~12MP) com a receita aplicada.
+            controller.capturarAltaResolucao(receita, forceMono) { hi ->
+                if (hi != null) processar(hi)
+                else previewView.capturar { lo -> processar(lo) }   // fallback: frame do preview
             }
+        } else {
+            previewView.capturar { lo -> processar(lo) }
         }
     }
     // Registra a versão sempre atual do disparo no App, para os botões de volume (MainActivity).
