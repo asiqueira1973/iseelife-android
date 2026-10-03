@@ -1,0 +1,14 @@
+I See Life (Android) — What's New (versionName 1.3.0, versionCode 7)
+Feature: a foto respeita a orientação do aparelho (horizontal sai em paisagem) —
+paridade com o iOS 1.4. Inclui também a captura em alta resolução (~12MP).
+App distribuído somente no Brasil — nota em pt-BR apenas. Play limita a 500 chars/idioma.
+
+==============================================================================
+pt-BR (Português — Brasil)  [tag Play: pt-BR]
+==============================================================================
+Fotos melhores.
+
+• Orientação respeitada: segure o telefone na horizontal e a foto sai em paisagem, do jeito que você enquadrou.
+• Resolução máxima: muito mais detalhe e nitidez no seu disparo.
+
+Compra única, sem assinatura. 100% offline, direto na hora do disparo.

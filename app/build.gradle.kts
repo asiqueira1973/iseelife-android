@@ -31,8 +31,8 @@ android {
         applicationId = "com.dablab.iseelife"   // mesmo namespace de marca do iOS (assunção 24.1)
         minSdk = 26
         targetSdk = 36
-        versionCode = 6          // 6 = captura em ALTA resolução (~12MP via ImageCapture; conserto do ~2MP do frame-grab)
-        versionName = "1.2.0"
+        versionCode = 7          // 7 = foto respeita a orientação do aparelho (OrientationEventListener → targetRotation)
+        versionName = "1.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

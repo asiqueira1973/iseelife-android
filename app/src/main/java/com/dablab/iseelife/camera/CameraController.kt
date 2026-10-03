@@ -9,6 +9,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
+import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -37,6 +38,9 @@ class CameraController(
     // aplicar a receita off-screen (o OffscreenRecipeRenderer tem contexto EGL preso à thread).
     private var imageCapture: ImageCapture? = null
     private val capturaExecutor = Executors.newSingleThreadExecutor()
+    // Orientação FÍSICA do aparelho (sensor) → targetRotation do ImageCapture. A UI é travada em
+    // retrato, mas a FOTO sai na orientação em que o telefone é segurado (paridade com o iOS 1.4).
+    private var orientationListener: OrientationEventListener? = null
     private val exposicao = ExposureController()
     private val manual = ManualControls()
 
@@ -104,6 +108,25 @@ class CameraController(
             exposicao.configurar(it)
             faixasManuais = manual.configurar(it)
         }
+        iniciarOrientationListener()
+    }
+
+    // Acompanha a orientação física do aparelho e ajusta o targetRotation da foto (a UI segue em
+    // retrato). Assim a foto sai em paisagem quando o telefone está na horizontal.
+    private fun iniciarOrientationListener() {
+        if (orientationListener != null) return
+        orientationListener = object : OrientationEventListener(context) {
+            override fun onOrientationChanged(orientation: Int) {
+                if (orientation == ORIENTATION_UNKNOWN) return
+                val rotation = when (orientation) {
+                    in 45 until 135 -> Surface.ROTATION_270
+                    in 135 until 225 -> Surface.ROTATION_180
+                    in 225 until 315 -> Surface.ROTATION_90
+                    else -> Surface.ROTATION_0
+                }
+                imageCapture?.targetRotation = rotation
+            }
+        }.also { if (it.canDetectOrientation()) it.enable() }
     }
 
     // Captura em ALTA resolução (foto do sensor) e aplica a receita em resolução cheia via o mesmo
@@ -173,6 +196,8 @@ class CameraController(
     }
 
     fun desligar() {
+        orientationListener?.disable()
+        orientationListener = null
         provider?.unbindAll()
         camera = null
         imageCapture = null
