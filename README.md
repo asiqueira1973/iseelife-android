@@ -2,6 +2,8 @@
 
 Câmera de fotografia de rua para Android, local-first e 100% offline, que aplica uma "receita" de cor na hora do disparo, com preview igual ao arquivo final (WYSIWYG).
 
+**[Baixar na Google Play](https://play.google.com/store/apps/details?id=com.dablab.iseelife)**
+
 Este é o port Android nativo do app iOS I See Life. As duas bases são independentes; a paridade é de comportamento, não de código. A versão iOS está na [App Store](https://apps.apple.com/br/app/i-see-life/id6799311673).
 
 ## Prints
