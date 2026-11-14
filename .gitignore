@@ -21,3 +21,15 @@ build/
 
 # Assinatura (nunca versionar)
 /keystore.properties
+
+# --- Segredos e credenciais (nunca versionar) ---
+.env
+.env.*
+!.env.example
+GoogleService-Info.plist
+google-services.json
+*.p8
+*.p12
+*.mobileprovision
+key.properties
+secrets/
