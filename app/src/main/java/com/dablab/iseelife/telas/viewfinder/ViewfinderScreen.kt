@@ -24,6 +24,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -152,15 +155,30 @@ fun ViewfinderScreen() {
         previewView.definirUniforms(RecipeUniforms.de(r, forceMono))
     }
 
-    // Prioridade de obturador no Modo Rua (regra 11.7): liga no Rua, desliga no Pro.
+    // Prioridade de obturador no Modo Rua (regra 11.7): liga no Rua, desliga no Pro. O Pro sempre
+    // começa no automático limpo (EV zerado) — ajustes de uma visita anterior não "grudam".
     LaunchedEffect(modo, boundState.value, config?.streetShutterDenominator) {
         if (boundState.value) {
             controller.prioridadeObturador(
                 ativar = modo == ModoCaptura.RUA,
                 denominador = config?.streetShutterDenominator ?: 250,
             )
+            if (modo == ModoCaptura.PRO) controller.proAuto()
         }
     }
+
+    // Focal do Rua (28/35/40) como zoom na lente wide; Pro e ultra-wide ficam no nativo (1×).
+    // Reaplica ao trocar de modo, lente ou focal (o rebind da lente zera o zoom).
+    val focalRua = config?.streetFocalMm ?: 28
+    LaunchedEffect(modo, boundState.value, lensState.value, focalRua) {
+        if (boundState.value) {
+            controller.aplicarFocal(
+                if (modo == ModoCaptura.RUA && lensState.value == LenteCamera.WIDE) focalRua else null
+            )
+        }
+    }
+    // Formato do quadro: Rua 3:2 (padrão) ou 4:3; Pro sempre 4:3. Visor e foto seguem o mesmo.
+    val tresPorDois = modo == ModoCaptura.RUA && (config?.street3x2 ?: true)
 
     // Compra confirmada (ou restaurada): persiste o desbloqueio e salva a foto pendente sem novo
     // toque, fechando o paywall (regra 11.4).
@@ -228,7 +246,7 @@ fun ViewfinderScreen() {
         val receita = activeRecipe
         if (receita != null) {
             // Caminho principal: foto do sensor em ALTA resolução (~12MP) com a receita aplicada.
-            controller.capturarAltaResolucao(receita, forceMono) { hi ->
+            controller.capturarAltaResolucao(receita, forceMono, tresPorDois) { hi ->
                 if (hi != null) processar(hi)
                 else previewView.capturar { lo -> processar(lo) }   // fallback: frame do preview
             }
@@ -245,23 +263,35 @@ fun ViewfinderScreen() {
 
     Box(modifier = Modifier.fillMaxSize().background(Estilo.FundoVisor)) {
         if (temPermissao) {
-            AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+            // Preview NO QUADRO DA FOTO (3:2 ou 4:3, retrato), logo abaixo da barra de cima —
+            // WYSIWYG: o visor mostra exatamente o que sai na foto (antes preenchia a tela e
+            // cortava as laterais). O renderer faz aspect-fill dentro deste quadro = mesmo corte
+            // central da captura.
+            Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+                Spacer(modifier = Modifier.height(72.dp))
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                        .aspectRatio(if (tresPorDois) 2f / 3f else 3f / 4f)
+                ) {
+                    AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 
-            // Camada transparente de toque: no Modo Rua, toque trava o foco no ponto (épico 8.4).
-            // No Pro o foco é manual (slider), então o toque não interfere.
-            Box(
-                modifier = Modifier.fillMaxSize().pointerInput(modo) {
-                    detectTapGestures { off ->
-                        if (modo == ModoCaptura.RUA) {
-                            controller.focarNoPonto(off.x, off.y, size.width, size.height)
-                            focoPonto = off
+                    // Camada transparente de toque: no Modo Rua, toque trava o foco no ponto
+                    // (épico 8.4). No Pro o foco é manual (slider), então o toque não interfere.
+                    Box(
+                        modifier = Modifier.fillMaxSize().pointerInput(modo) {
+                            detectTapGestures { off ->
+                                if (modo == ModoCaptura.RUA) {
+                                    controller.focarNoPonto(off.x, off.y, size.width, size.height)
+                                    focoPonto = off
+                                }
+                            }
                         }
-                    }
-                }
-            )
+                    )
 
-            // Indicador de foco âmbar; some após ~1s.
-            focoPonto?.let { ponto -> IndicadorFoco(ponto) { focoPonto = null } }
+                    // Indicador de foco âmbar; some após ~1s.
+                    focoPonto?.let { ponto -> IndicadorFoco(ponto) { focoPonto = null } }
+                }
+            }
 
             // Botão de lente (só com mais de uma — regra 11.1), topo direito.
             lensesState.value?.let { lds ->
@@ -309,6 +339,14 @@ fun ViewfinderScreen() {
                             aoWhiteBalance = { t, ti -> controller.proWhiteBalance(t, ti) },
                             aoAuto = { controller.proAuto() },
                         )
+                    }
+                }
+                // Seletor de focal (28/35/40) — só no Rua e na lente wide (é um crop da wide).
+                if (modo == ModoCaptura.RUA && lensState.value == LenteCamera.WIDE) {
+                    SeletorFocal(atual = focalRua) { mm ->
+                        scope.launch {
+                            repo.obterConfiguracao()?.let { repo.atualizarConfiguracao(it.copy(streetFocalMm = mm)) }
+                        }
                     }
                 }
                 Chip(texto = activeRecipe?.displayName ?: "—", destaque = true) {
@@ -443,4 +481,29 @@ private fun Chip(
             .clickable { onClick() }
             .padding(horizontal = 18.dp, vertical = 10.dp),
     )
+}
+
+// Seletor de distância focal do Modo Rua (28 / 35 / 40 mm) — pílula segmentada, ativo em âmbar.
+@Composable
+private fun SeletorFocal(atual: Int, aoSelecionar: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.background(Estilo.Painel, RoundedCornerShape(20.dp)).padding(3.dp),
+    ) {
+        for (mm in listOf(28, 35, 40)) {
+            val ativo = mm == atual
+            Text(
+                text = "$mm",
+                color = if (ativo) Estilo.Accent else Estilo.TextoSecundario,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .background(
+                        if (ativo) Estilo.TextoPrimario.copy(alpha = 0.08f) else Estilo.Painel.copy(alpha = 0f),
+                        RoundedCornerShape(18.dp),
+                    )
+                    .clickable { if (!ativo) aoSelecionar(mm) }
+                    .padding(horizontal = 16.dp, vertical = 7.dp),
+            )
+        }
+    }
 }

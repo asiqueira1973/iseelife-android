@@ -21,9 +21,17 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
+// Migração 2→3 (aditiva): focal do Rua (28/35/40) + formato da foto (3:2 padrão). Paridade iOS 1.4.1.
+private val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE configuracao_usuario ADD COLUMN focal_rua_mm INTEGER NOT NULL DEFAULT 28")
+        db.execSQL("ALTER TABLE configuracao_usuario ADD COLUMN proporcao_rua_3x2 INTEGER NOT NULL DEFAULT 1")
+    }
+}
+
 @Database(
     entities = [ConfiguracaoUsuario::class, Receita::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Conversores::class)
@@ -42,7 +50,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "iseelife.db",
-                ).addMigrations(MIGRATION_1_2).build().also { instancia = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instancia = it }
             }
     }
 }

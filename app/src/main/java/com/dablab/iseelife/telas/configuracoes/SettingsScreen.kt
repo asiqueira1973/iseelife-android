@@ -98,6 +98,34 @@ fun SettingsScreen(
                 }
             }
 
+            // Formato da foto no Modo Rua (3:2 padrão / 4:3). O Pro é sempre 4:3.
+            Text(
+                text = stringResource(R.string.config_formato_rua),
+                color = Estilo.TextoSecundario,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 16.dp, bottom = 6.dp),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for ((tres, rotulo) in listOf(true to "3:2", false to "4:3")) {
+                    val ativo = config.street3x2 == tres
+                    Text(
+                        text = rotulo,
+                        color = if (ativo) Estilo.FundoVisor else Estilo.TextoPrimario,
+                        fontWeight = if (ativo) FontWeight.SemiBold else FontWeight.Normal,
+                        modifier = Modifier
+                            .background(if (ativo) Estilo.Accent else Estilo.Painel, RoundedCornerShape(10.dp))
+                            .clickable { aoSalvar(config.copy(street3x2 = tres)) }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.config_formato_rua_dica),
+                color = Estilo.TextoSecundario,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+
             // Piso do obturador do Modo Rua (250/500/1000).
             Text(
                 text = stringResource(R.string.config_piso_obturador),

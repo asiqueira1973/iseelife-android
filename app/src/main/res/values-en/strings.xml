@@ -29,6 +29,9 @@
     <string name="config_silencioso">Silent shutter</string>
     <string name="config_preview_pb">B&amp;W preview in Street Mode</string>
     <string name="config_idioma">Language</string>
+    <string name="config_formato_rua">Photo format (Street Mode)</string>
+    <string name="config_formato_rua_dica">3:2 is the classic street-camera frame (Ricoh GR, Leica). 4:3 uses the full sensor. Pro Mode is always 4:3.</string>
+    <string name="pro_restaurar">Reset</string>
     <string name="config_piso_obturador">Minimum shutter (Street Mode)</string>
     <string name="config_restaurar_compra">Restore purchase</string>
     <string name="config_comprado">Purchase unlocked ✓</string>

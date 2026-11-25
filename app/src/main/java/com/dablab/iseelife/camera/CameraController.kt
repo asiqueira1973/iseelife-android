@@ -9,8 +9,13 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
+import android.hardware.camera2.CameraCharacteristics
+import android.util.Log
 import android.view.OrientationEventListener
 import android.view.Surface
+import androidx.annotation.OptIn
+import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
@@ -132,7 +137,7 @@ class CameraController(
     // Captura em ALTA resolução (foto do sensor) e aplica a receita em resolução cheia via o mesmo
     // shader do preview (WYSIWYG). Devolve o Bitmap filtrado na main thread — ou `null` se não houver
     // ImageCapture disponível ou der erro, para o chamador cair no fallback (frame do preview).
-    fun capturarAltaResolucao(receita: Receita, forceMono: Boolean, onResult: (Bitmap?) -> Unit) {
+    fun capturarAltaResolucao(receita: Receita, forceMono: Boolean, tresPorDois: Boolean, onResult: (Bitmap?) -> Unit) {
         val captura = imageCapture ?: run { onResult(null); return }
         val main = ContextCompat.getMainExecutor(context)
         captura.takePicture(capturaExecutor, object : ImageCapture.OnImageCapturedCallback() {
@@ -142,11 +147,12 @@ class CameraController(
                     val rot = image.imageInfo.rotationDegrees
                     image.close()
                     // Roda o bitmap para retrato (upright) conforme a rotação do sensor.
-                    val emPe = if (rot != 0) {
+                    val emPeBruto = if (rot != 0) {
                         val m = Matrix().apply { postRotate(rot.toFloat()) }
                         Bitmap.createBitmap(bruto, 0, 0, bruto.width, bruto.height, m, true)
                             .also { if (it != bruto) bruto.recycle() }
                     } else bruto
+                    val emPe = if (tresPorDois) cortarPara3x2(emPeBruto) else emPeBruto
                     // Aplica a receita em resolução cheia (mesmo shader do preview → WYSIWYG).
                     val renderer = OffscreenRecipeRenderer()
                     val filtrada = try {
@@ -166,6 +172,38 @@ class CameraController(
                 main.execute { onResult(null) }
             }
         })
+    }
+
+    // Focal do Modo Rua (28/35/40 mm equivalentes) como zoom na lente ATUAL; null = nativo (1×).
+    // O zoom sai do campo de visão REAL do sensor (tamanho físico ativo + focal da lente), não de
+    // uma focal suposta. Equivalência pelo LADO LONGO do quadro 3:2 de 35mm (36mm): o lado longo da
+    // foto cobre o mesmo que o de uma Ricoh GR/Leica na mesma focal (paridade iOS 1.4.1).
+    @OptIn(ExperimentalCamera2Interop::class)
+    fun aplicarFocal(mm: Int?) {
+        val cam = camera ?: return
+        val zoom = cam.cameraInfo.zoomState.value
+        val minZ = maxOf(zoom?.minZoomRatio ?: 1f, 1f)
+        val maxZ = zoom?.maxZoomRatio ?: 1f
+        val alvo = if (mm == null) 1f else (razaoZoom(Camera2CameraInfo.from(cam.cameraInfo), mm) ?: 1f)
+        val r = alvo.coerceIn(minZ, maxOf(minZ, maxZ))
+        Log.d("ISeeLife", "focal=${mm}mm zoom=$r (alvo=$alvo)")
+        cam.cameraControl.setZoomRatio(r)
+    }
+
+    // tan(meio-ângulo nativo do lado longo) / tan(meio-ângulo alvo de 36mm na focal pedida).
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun razaoZoom(info: Camera2CameraInfo, mm: Int): Float? {
+        val fisico = info.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE) ?: return null
+        val focal = info.getCameraCharacteristic(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
+            ?.minOrNull() ?: return null
+        val ativo = info.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
+        val pixels = info.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE)
+        val fracao = if (ativo != null && pixels != null && pixels.width > 0) ativo.width().toFloat() / pixels.width else 1f
+        val ladoLongoMm = maxOf(fisico.width, fisico.height) * fracao
+        if (focal <= 0f || ladoLongoMm <= 0f) return null
+        val tanNativo = (ladoLongoMm / 2f) / focal
+        val tanAlvo = 18f / mm
+        return tanNativo / tanAlvo
     }
 
     // Controles manuais do Modo Pro (épico 8.5) — passthrough para ManualControls.
@@ -202,4 +240,14 @@ class CameraController(
         camera = null
         imageCapture = null
     }
+}
+
+// Corte central para 3:2 mantendo o LADO LONGO (a focal equivalente é calibrada nele). Vale para
+// retrato e paisagem: corta sempre o lado curto. 4000x3000 -> 4000x2667.
+fun cortarPara3x2(src: Bitmap): Bitmap {
+    val w = src.width; val h = src.height
+    val (cw, ch) = if (w >= h) w to Math.round(w * 2f / 3f) else Math.round(h * 2f / 3f) to h
+    if (cw >= w && ch >= h) return src
+    val x = (w - cw) / 2; val y = (h - ch) / 2
+    return Bitmap.createBitmap(src, x, y, minOf(cw, w), minOf(ch, h)).also { if (it != src) src.recycle() }
 }

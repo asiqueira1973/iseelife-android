@@ -32,6 +32,10 @@ data class ConfiguracaoUsuario(
     // Cota grátis (regra 11.4): fotos salvas de graça antes do paywall. Assim o app é totalmente
     // usável sem pagamento/login (o revisor da Play acessa tudo), e é "experimente antes de comprar".
     @ColumnInfo(name = "fotos_gratis_usadas") val freeSavesUsed: Int = 0,
+    // Focal do Modo Rua (28/35/40 mm equivalentes), por crop/zoom na lente wide — paridade iOS 1.3+.
+    @ColumnInfo(name = "focal_rua_mm", defaultValue = "28") val streetFocalMm: Int = 28,
+    // Formato da foto no Rua: true = 3:2 (quadro de 35mm, padrão), false = 4:3. Pro é sempre 4:3.
+    @ColumnInfo(name = "proporcao_rua_3x2", defaultValue = "1") val street3x2: Boolean = true,
 )
 
 // receita — catálogo fixo, somente-leitura no MVP. Cada campo alimenta o shader (regra 11.6).
