@@ -31,8 +31,8 @@ android {
         applicationId = "com.dablab.iseelife"   // mesmo namespace de marca do iOS (assunção 24.1)
         minSdk = 26
         targetSdk = 36
-        versionCode = 7          // 7 = foto respeita a orientação do aparelho (OrientationEventListener → targetRotation)
-        versionName = "1.3.0"
+        versionCode = 8          // 8 = focal 28/35/40 pelo FOV real + foto 3:2 + visor no quadro da foto + obturador do Pro (paridade iOS 1.4.1)
+        versionName = "1.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

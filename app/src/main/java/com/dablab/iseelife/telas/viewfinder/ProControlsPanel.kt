@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.dablab.iseelife.R
 import com.dablab.iseelife.camera.FaixasManuais
 import com.dablab.iseelife.designsystem.Estilo
 import kotlin.math.ln
@@ -48,19 +50,30 @@ fun ProControlsPanel(
 ) {
     // Estados dos sliders (valores de UI; iniciam em pontos neutros).
     var foco by remember { mutableFloatStateOf(0f) }
-    var iso by remember { mutableFloatStateOf(((faixas.isoMin + faixas.isoMax) / 2).toFloat()) }
-    var obtT by remember { mutableFloatStateOf(0.5f) }     // 0..1 → tempo de exposição (log)
+    // ISO em escala log (0..1); obturador como ÍNDICE nas velocidades padrão de câmera.
+    var isoT by remember { mutableFloatStateOf(0.3f) }
+
     var ev by remember { mutableFloatStateOf(0f) }
     var temp by remember { mutableFloatStateOf(5200f) }
     var tint by remember { mutableFloatStateOf(0f) }
 
-    // Mapeia o slider 0..1 para tempo de exposição (log entre min e max) e devolve o denominador.
-    fun nsDe(t: Float): Long {
-        val lnMin = ln(faixas.obturadorMinNs.toDouble())
-        val lnMax = ln(faixas.obturadorMaxNs.toDouble())
-        return exp(lnMin + (lnMax - lnMin) * t).toLong()
+    // ISO: escala log entre min e max (cada stop ocupa o mesmo espaço).
+    fun isoDe(t: Float): Int {
+        val lnMin = ln(faixas.isoMin.toDouble()); val lnMax = ln(faixas.isoMax.toDouble())
+        return exp(lnMin + (lnMax - lnMin) * t).roundToInt()
     }
-    fun denominador(ns: Long): Int = (1_000_000_000.0 / ns).roundToInt().coerceAtLeast(1)
+    // Obturador: velocidades padrão (1/3 de stop) que cabem na faixa do sensor — 1/500 fica fácil.
+    val velocidades = remember(faixas) {
+        VELOCIDADES_PADRAO.filter { d ->
+            val ns = 1_000_000_000L / d
+            ns >= faixas.obturadorMinNs && ns <= faixas.obturadorMaxNs
+        }.ifEmpty { listOf(125) }
+    }
+    fun denomDe(i: Float): Int = velocidades[i.roundToInt().coerceIn(0, velocidades.lastIndex)]
+    // Começa em 1/125 (índice do primeiro denominador <= 125, já que a lista vai do mais lento ao mais rápido).
+    var obtI by remember(velocidades) {
+        mutableFloatStateOf(velocidades.indexOfFirst { it >= 125 }.coerceAtLeast(0).toFloat())
+    }
 
     Column(
         modifier = modifier
@@ -74,11 +87,17 @@ fun ProControlsPanel(
         LinhaSlider("Foco", if (foco <= 0.01f) "∞" else "%.2f".format(foco), foco, 0f..1f) {
             foco = it; aoFoco(it)
         }
-        LinhaSlider("ISO", iso.roundToInt().toString(), iso, faixas.isoMin.toFloat()..faixas.isoMax.toFloat()) {
-            iso = it; aoISO(it.roundToInt())
+        LinhaSlider("ISO", isoDe(isoT).toString(), isoT, 0f..1f) {
+            isoT = it; aoISO(isoDe(it))
         }
-        LinhaSlider("Obturador", "1/${denominador(nsDe(obtT))}", obtT, 0f..1f) {
-            obtT = it; aoObturador(nsDe(it))
+        LinhaSlider(
+            "Obturador", "1/${denomDe(obtI)}", obtI, 0f..velocidades.lastIndex.toFloat().coerceAtLeast(1f),
+            passos = (velocidades.size - 2).coerceAtLeast(0),
+        ) {
+            val antes = denomDe(obtI)
+            obtI = it
+            val d = denomDe(it)
+            if (d != antes) aoObturador(1_000_000_000L / d)
         }
         LinhaSlider("EV", (if (ev >= 0) "+%.1f" else "%.1f").format(ev), ev, -3f..3f) {
             ev = it; aoEV(it)
@@ -90,15 +109,19 @@ fun ProControlsPanel(
             tint = it; aoWhiteBalance(temp.roundToInt(), tint.roundToInt())
         }
 
-        // Botão "Auto" (restaura automático + zera EV).
+        // Botão "Restaurar" (volta tudo pro automático + zera EV e os sliders).
         Text(
-            text = "Auto",
+            text = stringResource(R.string.pro_restaurar),
             color = Estilo.Accent,
             fontWeight = FontWeight.SemiBold,
             fontSize = 15.sp,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .clickable { ev = 0f; aoAuto() }
+                .clickable {
+                    ev = 0f; foco = 0f; temp = 5200f; tint = 0f; isoT = 0.3f
+                    obtI = velocidades.indexOfFirst { it >= 125 }.coerceAtLeast(0).toFloat()
+                    aoAuto()
+                }
                 .padding(vertical = 6.dp, horizontal = 20.dp),
         )
     }
@@ -111,6 +134,7 @@ private fun LinhaSlider(
     valor: String,
     posicao: Float,
     faixa: ClosedFloatingPointRange<Float>,
+    passos: Int = 0,
     aoMudar: (Float) -> Unit,
 ) {
     Column {
@@ -125,6 +149,7 @@ private fun LinhaSlider(
             value = posicao,
             onValueChange = aoMudar,
             valueRange = faixa,
+            steps = passos,
             colors = SliderDefaults.colors(
                 thumbColor = Estilo.Accent,
                 activeTrackColor = Estilo.Accent,
@@ -132,3 +157,10 @@ private fun LinhaSlider(
         )
     }
 }
+
+// Velocidades padrão de câmera em 1/3 de stop (denominadores), do mais lento ao mais rápido. Antes
+// a régua era contínua e era difícil voltar a um valor redondo como 1/500.
+private val VELOCIDADES_PADRAO = listOf(
+    30, 40, 50, 60, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000,
+    2500, 3200, 4000, 5000, 6400, 8000,
+)

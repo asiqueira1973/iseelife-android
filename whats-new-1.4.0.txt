@@ -1,0 +1,17 @@
+I See Life (Android) — What's New (versionName 1.4.0, versionCode 8)
+Feature: seletor de focal 28/35/40 no Modo Rua (calibrado pelo campo de visão real do sensor),
+foto 3:2 por padrão (opção 4:3 nas Configurações), visor no quadro exato da foto e obturador do
+Modo Pro em velocidades de câmera + botão Restaurar — paridade com o iOS 1.4.1.
+App distribuído somente no Brasil — nota em pt-BR apenas. Play limita a 500 chars/idioma.
+
+==============================================================================
+pt-BR (Português — Brasil)  [tag Play: pt-BR]
+==============================================================================
+Enquadramento de câmera de rua de verdade.
+
+• Focais 28, 35 e 40 mm no Modo Rua, iguais às de uma câmera de rua.
+• Foto em 3:2, o formato clássico das câmeras de rua. Prefere 4:3? Troque nas Configurações.
+• O visor mostra exatamente o quadro da foto.
+• Modo Pro: obturador em velocidades de câmera e botão Restaurar.
+
+Compra única, sem assinatura. 100% offline.

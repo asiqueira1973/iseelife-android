@@ -34,6 +34,9 @@
     <string name="config_silencioso">Obturador silencioso</string>
     <string name="config_preview_pb">Preview P&amp;B no Modo Rua</string>
     <string name="config_idioma">Idioma</string>
+    <string name="config_formato_rua">Formato da foto (Modo Rua)</string>
+    <string name="config_formato_rua_dica">3:2 é o quadro clássico das câmeras de rua (Ricoh GR, Leica). 4:3 usa o sensor inteiro. O Modo Pro é sempre 4:3.</string>
+    <string name="pro_restaurar">Restaurar</string>
     <string name="config_piso_obturador">Obturador mínimo (Modo Rua)</string>
     <string name="config_restaurar_compra">Restaurar compra</string>
     <string name="config_comprado">Compra desbloqueada ✓</string>
